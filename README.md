@@ -11,7 +11,7 @@ has dealt with changes in the base resources and need to reflect those changes
 back in the profiles. Identifying what changes were made and what potential
 conflicts exist between the base resources and profiles can be daunting.
 
-The fhir-profile-tools provides a collection of tools that can scan
+The FhirProfileTools project provides a collection of tools that can scan
 for all or subset of profiles for all or specific resources then generate
 validation reports, html documentation, and perform other automated tasks.
 It provides the basic infrastructure to scan all top-level directories
@@ -28,7 +28,7 @@ The FhirProfileValidator can identify the following situations:
    want the profile to match the same type.
  * if profile misses any elements that are defined in the base resource which could have
    possibly been added or renamed after the profile was created.
-   
+
 # How to build
 
 Project uses [Gradle](http://www.gradle.org) as a build tool. Since gradle is awesome
@@ -68,7 +68,12 @@ Now to run the validator with config.dat run validate task in gradle:
 To generate HTML javadoc-like documentation for the profiles as classes run htmlScript task:
 
      gradlew runHtml
-  
+
+# Dependencies
+
+The scripts use the [Java to SpreadsheetML](http://sourceforge.net/projects/xelem/)
+Java-library to read the Excel XML spreadsheet files.
+
 # License
 
 Copyright 2014 The MITRE Corporation
@@ -83,4 +88,4 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
-limitations under the License.   
+limitations under the License.
