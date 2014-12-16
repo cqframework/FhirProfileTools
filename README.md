@@ -20,13 +20,13 @@ list of associated profiles then process those profile that match the
 target pattern.
 
 The FhirProfileValidator can identify the following situations:
-1. mismatch in cardinality between base resource and profile for correponding elements
+ * mismatch in cardinality between base resource and profile for correponding elements
    If the cardinality mismatch is itentional then the exception must be added to the
    rules.dat file so it will not be flagged as an error.
-2. mismatch in type definition between base resource and profile for correponding elements
+ * mismatch in type definition between base resource and profile for correponding elements
    Sometimes the type if base profile changes (E.g. dateTime -> date) and in most cases
    want the profile to match the same type.
-3. if profile misses any elements that are defined in the base resource which could have
+ * if profile misses any elements that are defined in the base resource which could have
    possibly been added or renamed after the profile was created.
    
 # How to build
@@ -46,6 +46,28 @@ If you already have Gradle installed then you can substiute the command gradle i
 listed above.
 
     gradle test
+	
+# Running
+
+To run of FHIR profiles you first need to create config.dat file in top-level
+of project that points to the location of resources and profiles. This normally
+would be the build/source folder from the fhir-svn repository.
+
+Can use config-example.dat as a template and copy that to config.dat then edit
+the following 3 properties:
+ * fhirSourceDir - directory of FHIR-svn repo build/source folder
+   from which the publish tools build the FHIR web site from
+ * ProfilePattern - regular expression for file name matching used to include
+   only those profiles of interest in processing and skip all others.
+ * profileRules - profile rules and explicit exceptions (e.g. cqf-rules.dat).
+ 
+Now to run the validator with config.dat run validate task in gradle:
+
+     gradlew validate
+	 
+To generate HTML javadoc-like documentation for the profiles as classes run htmlScript task:
+
+     gradlew runHtml
   
 # License
 
