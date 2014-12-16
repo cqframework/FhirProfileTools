@@ -1,0 +1,19 @@
+# intentional overriden properties in base resources for cqf profiles
+cqf-allergyintolerance-refuted.AllergyIntolerance.status.card=1..1
+cqf-immunization.Immunization.explanation.refusalReason.card=0..0
+cqf-immunization-refused.Immunization.explanation.reason.card=0..0
+#cqf-immunization-refused.Immunization.explanation.refusalReason:1..*
+cqf-immunization-refused.Immunization.reaction.card=0..0
+cqf-medicationdispense.MedicationDispense.patient.card=1..1
+cqf-medicationadministration.MedicationAdministration.reasonNotGiven.card=0..0
+cqf-medicationadministration-notgiven.MedicationAdministration.wasNotGiven.card=1..1
+cqf-medicationprescription.MedicationPrescription.patient.card=1..1
+cqf-medicationstatement.MedicationStatement.reasonNotGiven.card=0..0
+cqf-medicationstatement.MedicationStatement.patient.card=1..1
+cqf-medicationstatement-notgiven.MedicationStatement.patient.card=1..1
+cqf-medicationstatement-notgiven.MedicationStatement.wasNotGiven.card=1..1
+cqf-medicationstatement.MedicationPrescription.patient.card=1..1
+cqf-observation.Observation.value[x].card=1..1
+cqf-observation.Observation.dataAbsentReason.card=0..0
+cqf-observation-absent.Observation.value[x].card=0..0
+cqf-observation-absent.Observation.dataAbsentReason.card=1..1

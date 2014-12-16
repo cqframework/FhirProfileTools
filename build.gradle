@@ -1,0 +1,28 @@
+apply plugin: 'groovy'
+
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.1'
+}
+
+task runHtml (dependsOn: 'compileGroovy', type: JavaExec) {
+    main = 'HtmlMain'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task validate (dependsOn: 'compileGroovy', type: JavaExec) {
+    main = 'ScanMain'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+dependencies {	
+ compile group: 'commons-io', name: 'commons-io', version: '1.4'
+ compile 'org.codehaus.groovy:groovy-all:2.3.6'
+ compile fileTree(dir: 'lib', include: 'xelem-3.1.jar')
+ testCompile group: 'junit', name: 'junit', version: '4.11'
+}

@@ -1,0 +1,3 @@
+# subset of rules for testing
+cqf-observation.Observation.dataAbsentReason.card=0..0
+cqf-observation-absent.Observation.dataAbsentReason.card=1..1

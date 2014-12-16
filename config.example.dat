@@ -1,0 +1,16 @@
+# ProfilePattern used to include only those profiles
+# of interest in processing and skip all others.
+# pattern to match only CQF profiles
+profilePattern=cqf-.*profile-spreadsheet.xml$
+# pattern to match only DAF profiles
+#profilePattern=daf-.*profile-spreadsheet.xml$
+# pattern to match only CQF and DAF profiles
+#profilePattern=(?:cqf|daf)-.*profile-spreadsheet.xml$
+
+# directory of FHIR-svn repo build/source folder
+# from which the publish tools build the FHIR web site from
+#fhirSourceDir=C:/projects/fhir/build/source
+fhirSourceDir=src/test/resources/source
+
+#profile rules and explicit exceptions
+profileRules=cqf-rules.dat
