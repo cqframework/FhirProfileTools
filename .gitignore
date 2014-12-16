@@ -1,4 +1,5 @@
 build/
 .gradle/
 .idea/
+docs/
 config.dat

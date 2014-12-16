@@ -49,7 +49,7 @@ listed above.
 	
 # Running
 
-To run of FHIR profiles you first need to create config.dat file in top-level
+To run on FHIR profiles you first need to create config.dat file in top-level
 of project that points to the location of resources and profiles. This normally
 would be the build/source folder from the fhir-svn repository.
 
