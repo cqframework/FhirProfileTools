@@ -182,7 +182,7 @@ class FhirProfileValidator extends FhirProfileScanner {
 
       boolean typeDiff = false
       String baseType = details.type // never null but can be empty ('') if not defined
-      if ((baseType || type) && !checkType(baseType, type)) {
+      if ((baseType || type) && !checkType(eltName, baseType, type, warnings)) {
         String name = eltName
         if (flags) name = String.format("%s (flags: %s)", eltName, flags.join(', '))
         printf '\ttypeDiff: %s\t%s%n\t\tbase=%s%n\t\ttype=%s%n', name, cardinality, baseType, type
@@ -335,7 +335,7 @@ class FhirProfileValidator extends FhirProfileScanner {
    * @return true if equivalent and/or compatible and false if not
    */
   @TypeChecked
-  static boolean checkType(String baseType, String type) {
+  static boolean checkType(String eltName, String baseType, String type, List<String> warnings) {
     if (baseType == type) return true
     if (baseType == 'Reference(Any)') return true // profile can restrict type as required
     if (!type) return false
@@ -350,28 +350,16 @@ class FhirProfileValidator extends FhirProfileScanner {
       type.split('\\|').each{ String s ->
         profTypes.add(getBaseType(s))
       }
-      boolean val = baseTypes.equals(profTypes)
-      println "X: list eq=$val" // debug
-      println "1=" + baseType
-      println "2=" + type
-      println "1=" + baseTypes
-      println "2=" + profTypes
-      return val
-      //return baseTypes.equals(profTypes)
+      return baseTypes.equals(profTypes)
     } else if (baseType.contains('(') || type.contains('{')) {
+      if (baseType.startsWith('Reference(') && !type.startsWith('Reference(')) {
+        warnings.add("$eltName: type does not have Reference() prefix: base type=$baseType profile type=$type".toString())
+      }
       // allow short-hand e.g.; base type = Reference(Specimen), type = Specimen ??
       // type contains profile target reference; e.g. Reference(Patient){http://hl7.org/fhir/Profile/patient-daf-dafpatient}
       baseType = getBaseType(baseType)
       type = getBaseType(type)
-      boolean val = baseType == type
-      println "X: profile spec $val" // debug
-      println "1="+ baseType
-      println "2="+type
-      println "--"
-      return val
-      //return baseType == type
-    } else {
-
+      return baseType == type
     }
 
     // check profile in type {}
