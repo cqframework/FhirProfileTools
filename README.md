@@ -42,7 +42,7 @@ The first time you run this it will download and install gradle. Downloaded file
 distribution itself) will be stored in the Gradle user home directory (typically "<user_home>/.gradle").
 Subsequent runs will be much faster.
 
-If you already have Gradle installed then you can substiute the command gradle in place of gradlew as
+If you already have Gradle installed then you can substitute the command gradle in place of gradlew as
 listed above.
 
     gradle test
@@ -57,9 +57,10 @@ Can use config-example.dat as a template and copy that to config.dat then edit
 the following 3 properties:
  * fhirSourceDir - directory of FHIR-svn repo build/source folder
    from which the publish tools build the FHIR web site from
- * ProfilePattern - regular expression for file name matching used to include
+ * profilePattern - regular expression for file name matching used to include
    only those profiles of interest in processing and skip all others.
  * profileRules - profile rules and explicit exceptions (e.g. cqf-rules.dat).
+   This is optional but strongly recommended.
  
 Now to run the validator with config.dat run validate task in gradle:
 
