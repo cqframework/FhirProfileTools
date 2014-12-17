@@ -3,7 +3,7 @@ FhirProfileTools
 
 Collection of tools for authors of Fast Healthcare Interoperability Resources (FHIR)
 profiles to automate validation and supplemental documentation generation.
-Initial set of tools are for profiles in Excel XML Spreadsheet 2003 format,
+Initial set of tools are for profiles in Excel XML Spreadsheet 2003 format (aka SpreadsheetML),
 which is typically used to define resources and associated profiles.
 
 Anybody creating profiles off the continuous integration branch of fhir-svn repo
@@ -16,7 +16,7 @@ for all or subset of profiles for all or specific resources then generate
 validation reports, html documentation, and perform other automated tasks.
 It provides the basic infrastructure to scan all top-level directories
 in FHIR source folder, open resource spreadsheet XML files, extract the
-list of associated profiles then process those profile that match the
+list of associated profiles then process those profiles that match the
 target pattern.
 
 The FhirProfileValidator can identify the following situations:
@@ -55,18 +55,18 @@ would be the build/source folder from the fhir-svn repository.
 
 Can use config-example.dat as a template and copy that to config.dat then edit
 the following 3 properties:
- * fhirSourceDir - directory of FHIR-svn repo build/source folder
+ * **fhirSourceDir** - directory of FHIR-svn repo build/source folder
    from which the publish tools build the FHIR web site from
- * profilePattern - regular expression for file name matching used to include
+ * **profilePattern** - regular expression for file name matching used to include
    only those profiles of interest in processing and skip all others.
- * profileRules - profile rules and explicit exceptions (e.g. cqf-rules.dat).
+ * **profileRules** - profile rules and explicit exceptions (e.g. cqf-rules.dat).
    This is optional but strongly recommended.
  
-Now to run the validator with config.dat run validate task in gradle:
+Now to run the validator with config.dat, run `validate` task in gradle:
 
      gradlew validate
 	 
-To generate HTML javadoc-like documentation for the profiles as classes run htmlScript task:
+To generate HTML javadoc-like documentation for the profiles as classes run `runHtml` task:
 
      gradlew runHtml
 
