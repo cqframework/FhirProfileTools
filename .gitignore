@@ -2,4 +2,4 @@ build/
 .gradle/
 .idea/
 docs/
-config.dat
+/config.dat

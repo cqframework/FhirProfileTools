@@ -1,0 +1,10 @@
+# directory of FHIR-svn repo build/source folder
+# from which the publish tools build the FHIR web site from
+fhirSourceDir=src/test/resources/source
+
+# ProfilePattern used to filter include only those profiles
+# of interest in processing and skip all others.
+# (default) profilePattern=.*profile-spreadsheet.xml$
+
+# profile rules for testing
+profileRules=src/test/resources/test-rules.dat
