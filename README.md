@@ -1,8 +1,9 @@
 FhirProfileTools
 ================
 
-Collection of tools for authors of Fast Healthcare Interoperability Resources (FHIR)
-profiles to automate validation and supplemental documentation generation.
+Collection of tools for authors of Fast Healthcare Interoperability Resources
+([FHIR](http://www.hl7.org/implement/standards/fhir/)) profiles to automate
+validation and supplemental documentation generation.
 Initial set of tools are for profiles in Excel XML Spreadsheet 2003 format (aka SpreadsheetML),
 which is typically used to define resources and associated profiles.
 
