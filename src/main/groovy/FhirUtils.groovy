@@ -1,3 +1,14 @@
+/*
+        Copyright (C) 2014 The MITRE Corporation. All Rights Reserved.
+
+ The program is provided "as is" without any warranty express or implied, including
+ the warranty of non-infringement and the implied warranties of merchantability and
+ fitness for a particular purpose.  The Copyright owner will not be liable for any
+ damages suffered by you as a result of using the Program.  In no event will the
+ Copyright owner be liable for any special, indirect or consequential damages or
+ lost profits even if the Copyright owner has been advised of the possibility of
+ their occurrence.
+*/
 import java.util.regex.Pattern
 
 /**
@@ -20,12 +31,15 @@ class FhirUtils {
 
   /**
    * ProfilePattern used to include only those profiles
-   * of interest in processing and skip all others.
+   * of interest in processing and skip all others. If unspecified then the
+   * default pattern /.*profile-spreadsheet.xml$/ will be used.
    */
   private final static Pattern profilePattern
 
   static {
     Properties props = new Properties()
+
+	// first try config.dat in classpath
     InputStream is = FhirUtils.class.getClassLoader()?.getResourceAsStream('config.dat')
     if(is) {
       try {
@@ -34,6 +48,7 @@ class FhirUtils {
         is.close()
       }
     } else {
+	  // otherwise try config.dat as local file
       File file = new File('config.dat')
       if (file.exists()) {
         def r = new FileReader('config.dat')
@@ -56,7 +71,7 @@ class FhirUtils {
     val = props.getProperty('profileRules')
     if (val) {
       rules = new File(val)
-      if (!rules.exists()) System.err.println "rules file not found: $val"
+      if (!rules.exists()) System.err.println "ERROR: rules file not found: $val"
     }
   }
 
