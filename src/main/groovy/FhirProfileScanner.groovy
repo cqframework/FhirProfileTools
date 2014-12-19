@@ -42,8 +42,14 @@ class FhirProfileScanner {
   static final String LABEL_DEFINITION = 'Definition'
   static final String LABEL_IS_MODIFIER = 'Is Modifier' // not in profile-spreadsheet (only used in resource spreadsheet)
 
+  // labels in Binding worksheet
+  static final String LABEL_BINDING_NAME = "Binding Name"
+  static final String LABEL_REFERENCE = "Reference"
+
   final ExcelReader reader = new ExcelReader()
   private final Pattern profilePattern
+
+  protected Workbook xlWorkbook
 
   String resourceName, lastResource
   Profile profile, lastProfile
@@ -93,6 +99,10 @@ class FhirProfileScanner {
       }
       if (val =~ profilePattern) {
         String name = row.getCellAt(1).getData$()
+        if ('profile' == row.getCellAt(4).getData$()) {
+          println "WARN: skip FHIR XML profile: $name" // only spreadsheet type currently supported
+          continue
+        }
         // println "\tprofile name: $name"
         if (name.startsWith("!")) // check profile name
           println "WARN: profile disabled: $name"
@@ -183,7 +193,7 @@ class FhirProfileScanner {
         def value = worksheet.getCellAt(i, isModIdx).getData$()
         if (value) {
           isModifier = value == '1' || value.equalsIgnoreCase('Y')
-          // if (isModifier) println "\t$val [isModifier]"
+          // if (isModifier) println "X: $resourceName.$val [isModifier]"
         }
       }
       mapping.put(val, new Details(card, type, description, isModifier))
@@ -205,7 +215,7 @@ class FhirProfileScanner {
 
 
   void checkProfile(Map<String, Details> mapping, File file) {
-    Workbook xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
+    xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
 
     // 1. start with Metadata worksheet
     Worksheet worksheet = xlWorkbook.getWorksheet('Metadata')
@@ -253,16 +263,8 @@ class FhirProfileScanner {
     }
 
     //int eltIdx = 4, cardIdx = 6, typeIdx = 7, mustIdx = 8
-    Map<String, Integer> index = new TreeMap<>()
+    Map<String, Integer> index = getWorkSheetIndex(worksheet)
     try {
-      Row row = worksheet.getRowAt(1)
-      // iterate over columns in row 1 of structure worksheet
-      for (int i = 1; i < 50; i++) {
-        // structure worksheet cannot have empty column name so stop when find empty cell
-        String val = row.getCellAt(i).getData$()
-        if (val == null || val.isEmpty()) break
-        index.put(val, i)
-      }
       checkIndex(index)
       // column index: [??? Mapping:22, Aliases:5, Binding:10, Card.:6, Comments:18, Committee Notes:24, ... ]
       // template worksheet has 24 columns in Structure work??
@@ -279,6 +281,19 @@ class FhirProfileScanner {
 
     profileCount++
     processProfile(mapping, worksheet, index)
+  }
+
+  static Map<String, Integer> getWorkSheetIndex(Worksheet worksheet) {
+    Map<String, Integer> index = new TreeMap<>()
+    Row row = worksheet.getRowAt(1)
+    // iterate over columns in row 1 of structure worksheet
+    for (int i = 1; i < 50; i++) {
+      // structure worksheet cannot have empty column name so stop when find empty cell
+      String val = row.getCellAt(i).getData$()
+      if (val == null || val.isEmpty()) break
+      index.put(val, i)
+    }
+    return index
   } // checkProfile
 
 
@@ -306,10 +321,14 @@ class FhirProfileScanner {
 
   void printResource() {
     if (resourceName && resourceName != lastResource) {
-      println()
-      println resourceName
+      printResourceName()
       lastResource = resourceName
     }
+  }
+
+  void printResourceName() {
+    println()
+    println resourceName
   }
 
   void printHeader() {
