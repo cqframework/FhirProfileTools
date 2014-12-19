@@ -386,7 +386,7 @@ class FhirProfileValidator extends FhirProfileScanner {
    }
 
   /**
-   * Normalize type definitions
+   * Normalize type definitions. Order of types in lists does not matter but names are case-sensitive.
    * @param s type
    * @return normalized type
    */
@@ -494,14 +494,10 @@ class FhirProfileValidator extends FhirProfileScanner {
   }
 
   @TypeChecked
-  void printResource() {
-    if (resourceName && resourceName != lastResource) {
-      println()
-      println resourceName
+  void printResourceName() {
+    super.printResourceName()
       out.printf('\n<hr>\n<h1>%s&nbsp;<a href="%s%s.html"><img src="images/external_link_icon.gif"></a></h1>',
               resourceName, baseUrl, resourceName.toLowerCase())
-      lastResource = resourceName
-    }
   }
 
   @TypeChecked
