@@ -21,14 +21,14 @@ list of associated profiles then process those profiles that match the
 target pattern.
 
 The FhirProfileValidator can identify the following situations:
- * mismatch in cardinality between base resource and profile for correponding elements
+ * mismatch in cardinality between base resource and profile for correponding elements.
    If the cardinality mismatch is itentional then the exception must be added to the
    rules.dat file so it will not be flagged as an error.
- * mismatch in type definition between base resource and profile for correponding elements
-   Sometimes the type if base profile changes (E.g. dateTime -> date) and in most cases
+ * mismatch in type definition between base resource and profile for correponding elements.
+   Sometimes the type of base profile changes (E.g. dateTime -> date) and in most cases
    want the profile to match the same type.
  * if profile misses any elements that are defined in the base resource which could have
-   possibly been added or renamed after the profile was created.
+   been added or renamed after the profile was created.
 
 # How to build
 
@@ -50,11 +50,11 @@ listed above.
 	
 # Running
 
-To run on FHIR profiles you first need to create config.dat file in top-level
+To run on FHIR profiles you first need to create a `config.dat` file in top-level
 of project that points to the location of resources and profiles. This normally
 would be the build/source folder from the fhir-svn repository.
 
-Can use config-example.dat as a template and copy that to config.dat then edit
+Can use `config-example.dat` as a template and copy that to config.dat then edit
 the following 3 properties:
  * **fhirSourceDir** - directory of FHIR-svn repo build/source folder
    from which the publish tools build the FHIR web site from
