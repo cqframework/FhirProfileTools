@@ -67,7 +67,7 @@ class FhirProfileValidator extends FhirProfileScanner {
    *
    * @param mapping   Mapping of base resource elements to their definition
    * @param worksheet Active worksheet for this profile
-   * @param index  Map of all column names to column index
+   * @param index  Map of all column names to column index in active worksheet
    */
   @TypeChecked
   void processProfile(Map<String, Details> mapping, Worksheet worksheet,
@@ -143,14 +143,25 @@ class FhirProfileValidator extends FhirProfileScanner {
       rows++
       elements.add(eltName)
 
-      Cell cell2 = worksheet.getCellAt(i, cardIdx)
-      String cardinality = cell2.getData$() ?: ''
-      String mustSupport = 'Y' == worksheet.getCellAt(i, mustIdx).getData$() ? 'Y' : '' // ?: ''
+      final String cardinality = worksheet.getCellAt(i, cardIdx).getData$() ?: ''
+	  String val = worksheet.getCellAt(i, mustIdx).getData$() // Y, y, Yes, N, No, or empty
+      boolean mustSupport = val && val.toUpperCase().startsWith('Y')
       Set flags =  new TreeSet()
-      if (mustSupport == 'Y') flags.add('S')
-      if (bindIdx && worksheet.getCellAt(i, bindIdx).getData$()?.trim()) flags.add('V') // binding/valueset
-      if (valueIdx && worksheet.getCellAt(i, valueIdx).getData$()?.trim()) flags.add('F') // fixed value
-      //String flags =  mustSupport == 'Y' ? 'S' : ''
+      if (mustSupport) flags.add('S')
+      if (bindIdx) {
+        String binding = worksheet.getCellAt(i, bindIdx).getData$()?.trim()
+        // TODO validate binding compared to base resource
+        if (binding) flags.add('V')
+      }
+      if (valueIdx) {
+        String value = worksheet.getCellAt(i, valueIdx).getData$()?.trim()
+        if (value) {
+          flags.add('F')
+          // TODO validate fixed value
+          // println "X: ${profile.name} $eltName value $value"
+        }
+      }
+
       String type = worksheet.getCellAt(i, typeIdx).getData$()?.trim() ?: ''
       // println "flags: " + flags.join(', ')
       if (details == null) {
@@ -195,7 +206,6 @@ class FhirProfileValidator extends FhirProfileScanner {
         String name = id + "." + eltName
         //out.println "<tr><td>"+name
         if (count++ == 0) {
-          //printResource()
           printHeader()
           out.println(TABLE_DEF)
         }
@@ -203,20 +213,23 @@ class FhirProfileValidator extends FhirProfileScanner {
         if (exp == cardinality) {
           // cardinality is correct exception - green color
           char cardLow = cardinality.charAt(0)
+          String cardPrint
           if (cardLow != baseCard.charAt(0))
-            cardinality = '<B class="big">' + cardLow + "</B>" + cardinality.substring(1)
-          else cardinality = String.valueOf(cardLow) + '<B class="big">'  + cardinality.substring(1) + "</B>"
-          out.printf('<tr><td>%s<td>%s<td class="overrideCard">%s<br>%s (*)', eltName, flags.join(', '), baseCard, cardinality)
+            cardPrint = '<B class="big">' + cardLow + "</B>" + cardinality.substring(1)
+          else cardPrint = String.valueOf(cardLow) + '<B class="big">'  + cardinality.substring(1) + "</B>"
+          out.printf('<tr><td>%s<td>%s<td class="overrideCard">%s<br><span title="expected cardinality">%s (*)</span>',
+                  eltName, flags.join(', '), baseCard, cardPrint)
         } else {
           errors++
           if (cardinality) {
             if (exp != null) println "XX: mismatch cqf exception $exp $cardinality"
             printf '\t%s\t%s\t%s%n', eltName, baseCard, cardinality
             char cardLow = cardinality.charAt(0)
+            String cardPrint
             if (cardLow != baseCard.charAt(0))
-              cardinality = '<B class="big">' + cardLow + "</B>" + cardinality.substring(1)
-            else cardinality = String.valueOf(cardLow) + '<B class="big">' + cardinality.substring(1) + "</B>"
-            out.printf('<tr><td>%s<td>%s<td class="error">%s<br>%s', eltName, flags.join(', '), baseCard, cardinality)
+              cardPrint = '<B class="big">' + cardLow + "</B>" + cardinality.substring(1)
+            else cardPrint = String.valueOf(cardLow) + '<B class="big">' + cardinality.substring(1) + "</B>"
+            out.printf('<tr><td>%s<td>%s<td class="error">%s<br>%s', eltName, flags.join(', '), baseCard, cardPrint)
           } else {
             out.printf('<tr><td>%s<td>%s<td class="error">%s', eltName, flags.join(', '), baseCard)
           }
