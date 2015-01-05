@@ -39,6 +39,7 @@ class FhirProfileScanner {
   static final String LABEL_MUST_SUPPORT = 'Must Support'
   static final String LABEL_BINDING = 'Binding'
   static final String LABEL_VALUE = 'Value'
+  static final String LABEL_SHORT_LABEL = 'Short Label'
   static final String LABEL_DEFINITION = 'Definition'
   static final String LABEL_IS_MODIFIER = 'Is Modifier' // not in profile-spreadsheet (only used in resource spreadsheet)
 
@@ -112,92 +113,23 @@ class FhirProfileScanner {
         //println "\t" + val
       } // else println "XX:  no match: $val"
     }
-    //println profiles
-    if (!profiles) return // no cqf profiles
-
-    worksheet = xlWorkbook.getWorksheet("Data Elements")
-    if (worksheet == null) {
-      println 'ERROR: data elements worksheet not found in spreadsheet'
-      return
-    }
 
     //println "\nfile: " + file.getName()
     resourceName = file.getName().replaceFirst(/-spreadsheet.xml$/, "")
     profile = null
 
-    //def row = worksheet.getRowAt(1) // debug
-    //println "rows=" + row.size()
-    //printf "%s,%s%n", row.getCellAt(1).getData(), row.getCellAt(3).getData()
+    //println profiles
+    if (profiles.isEmpty()) {
+      // no profiles
+      processEmptyProfileList(xlWorkbook)
+      return
+    }
 
-    // column index
+    // get column mappings
     // 1=Element,2=Aliases,3=Card.,4=Inv.,5=Type,6=Is Modifier,7=Summary,8=Binding,9=Example,
     // 10=Default Value,11=Missing Meaning,12=Regex,13=Short Label,14=Definition,15=Requirements,...
-
-    String val = worksheet.getCellAt(1, 1).getData$()
-    if (LABEL_ELEMENT != val) {
-      error("non-Element column at 1-1: $val")
-      return
-    }
-    val = worksheet.getCellAt(1, 3).getData$()
-    if (LABEL_CARD != val) {
-      error("non-Cardinality column at 1-3: $val")
-      return
-    }
-    val = worksheet.getCellAt(1, 5).getData$()
-    int typeIdx = 5
-    if (LABEL_TYPE == val) {
-      val = worksheet.getCellAt(2, typeIdx).getData$()
-      if ('DomainResource' !=  val && 'Resource' != val) {
-        warn("expected Resouce as type: $val")
-      }
-    } else {
-      // TODO: if these assumptions fail then need to locate the Type column
-      warn("non-Type column at 1-5: $val")
-      typeIdx = 0
-    }
-
-    val = worksheet.getCellAt(1, 6).getData$()
-    int isModIdx = LABEL_IS_MODIFIER == val ? 6 : 0
-    // println 'isModIdx='+isModIdx
-
-    val = worksheet.getCellAt(1, 14).getData$()
-    int defIdx = LABEL_DEFINITION == val ? 14 : 0
-
-    val = worksheet.getCellAt(2, 1).getData$() // resource name
-    if(val) {
-      // use actual Resource name rather than filename
-      if (val.startsWith("!")) warn("resource: $val disabled") // debug
-      resourceName = val
-    }
-
-    // base resource-level mapping: name -> Detail{ cardinality + type } e.g. Condition.subject => card=1..1, type=Patient
-    Map<String, Details> mapping = new LinkedHashMap<>()
-    // skip header and resource-level rows
-    String type, description
-    for (int i = 3; i < 100; i++) {
-      Cell cell1 = worksheet.getCellAt(i, 1) // Element name (e.g. Encounter.location)
-      val = cell1.getData$()
-      if (val == null || val == '') {
-        // println "\tbreak at $i rows"
-        break
-      }
-      String card = worksheet.getCellAt(i, 3).getData$() // Cardinality
-      if (typeIdx > 0) {
-        type = worksheet.getCellAt(i, typeIdx).getData$().trim() // Type
-      } else type = ''
-      if (defIdx > 0) {
-        description = worksheet.getCellAt(i, defIdx).getData$().trim() // Definition
-      } else description = ''
-      boolean isModifier = false
-      if (isModIdx > 0) {
-        def value = worksheet.getCellAt(i, isModIdx).getData$()
-        if (value) {
-          isModifier = value == '1' || value.equalsIgnoreCase('Y')
-          // if (isModifier) println "X: $resourceName.$val [isModifier]"
-        }
-      }
-      mapping.put(val, new Details(card, type, description, isModifier))
-    }
+    Map<String, Details> mapping = getResourceMapping(xlWorkbook)
+    if (!mapping) return
 
     //printProfile()
     //println "\t" + mapping // debug
@@ -211,7 +143,82 @@ class FhirProfileScanner {
       checkProfile(mapping, new File(dir, it.sourceFile))
     }
     profileGroupEnd(profiles)
-  } // checkDirectory
+  }  // checkDirectory
+
+
+  protected void processEmptyProfileList(Workbook xlWorkbook) {
+    // implement in subclasses
+  }
+
+
+  protected Map<String, Details> getResourceMapping(Workbook xlWorkbook) {
+
+    Worksheet worksheet = xlWorkbook.getWorksheet('Data Elements')
+    if (worksheet == null) {
+      println 'ERROR: data elements worksheet not found in spreadsheet'
+      return null
+    }
+
+    //def row = worksheet.getRowAt(1) // debug
+    //println "rows=" + row.size()
+    //printf "%s,%s%n", row.getCellAt(1).getData(), row.getCellAt(3).getData()
+
+    // column index
+    // 1=Element,2=Aliases,3=Card.,4=Inv.,5=Type,6=Is Modifier,7=Summary,8=Binding,9=Example,
+    // 10=Default Value,11=Missing Meaning,12=Regex,13=Short Label,14=Definition,15=Requirements,...
+    Map<String, Integer> index = getWorkSheetIndex(worksheet)
+    int eltIdx, cardIdx, typeIdx, shortLabelIdx, isModIdx, defIdx
+    try {
+      eltIdx = getIndex(index, LABEL_ELEMENT)
+      cardIdx = getIndex(index, LABEL_CARD)
+      typeIdx = getIndex(index, LABEL_TYPE)
+      isModIdx = getIndex(index, LABEL_IS_MODIFIER)
+      shortLabelIdx = getIndex(index, LABEL_SHORT_LABEL)
+      defIdx = getIndex(index, LABEL_DEFINITION)
+    } catch (IllegalArgumentException e) {
+      error(e.toString())
+      return null
+    }
+
+    String val = worksheet.getCellAt(2, typeIdx).getData$()
+    if ('DomainResource' != val && 'Resource' != val) {
+      warn("expected Resouce as type: $val")
+    }
+
+    val = worksheet.getCellAt(2, eltIdx).getData$() // resource name
+    if (val) {
+      // use actual Resource name rather than filename
+      if (val.startsWith("!")) warn("resource: $val disabled") // debug
+      resourceName = val
+    }
+
+    // base resource-level mapping: name -> Detail{ cardinality + type } e.g. Condition.subject => card=1..1, type=Patient
+    Map<String, Details> mapping = new LinkedHashMap<>()
+    // skip header and resource-level rows
+    for (int i = 3; i < 100; i++) {
+      // Element name (e.g. Encounter.location)
+      val = worksheet.getCellAt(i, eltIdx).getData$()
+      if (val == null || val == '') {
+        // println "\tbreak at $i rows"
+        break
+      }
+      String name = val
+      String card = worksheet.getCellAt(i, cardIdx).getData$() // Cardinality
+      String shortLabel = worksheet.getCellAt(i, shortLabelIdx).getData$()
+      String type = worksheet.getCellAt(i, typeIdx).getData$().trim() // Type
+      String description = worksheet.getCellAt(i, defIdx).getData$().trim() // Definition
+      boolean isModifier = false
+      val = worksheet.getCellAt(i, isModIdx).getData$()
+      if (val) {
+        // possible isModifier values: 1, y, Y, Yes, yes, 0, n, no, empty string
+        isModifier = val == '1' || val.toUpperCase().startsWith('Y')
+        // if (isModifier) println "X: $resourceName.$val [isModifier]"
+      }
+      mapping.put(name, new Details(card, type, description, shortLabel, isModifier))
+    }
+
+    return mapping
+  }
 
 
   void checkProfile(Map<String, Details> mapping, File file) {
@@ -308,7 +315,7 @@ class FhirProfileScanner {
    *
    * @param mapping   Mapping of base resource elements to their definition
    * @param worksheet Active worksheet for this profile
-   * @param indexMap  Map of all column names to column index
+   * @param indexMap  Map of all column names to column index in active worksheet
    */
   void processProfile(Map<String, Details> mapping, Worksheet worksheet,
                     Map<String, Integer> indexMap) {
@@ -361,6 +368,12 @@ class FhirProfileScanner {
    */
   void checkIndex(Map<String, Integer> index) {
     // implement in subclasses
+  }
+
+  int getIndex(Map<String, Integer> index, String key) {
+    Integer val = index.get(key)
+    if (val == null) throw new IllegalArgumentException("Column $key not found")
+    return val
   }
 
   /**
@@ -444,13 +457,14 @@ class FhirProfileScanner {
    */
   @TypeChecked
   static class Details {
-    final String card, type, description
+    final String card, type, description, shortLabel
     final boolean isModifier
 
-    Details(String card, String type, String description, boolean isModifier) {
+    Details(String card, String type, String description, String shortLabel, boolean isModifier) {
       this.card = card
       this.type = type ?: ''
       this.description = description
+      this.shortLabel = shortLabel ?: ''
       this.isModifier = isModifier
     }
     String toString() {
