@@ -33,19 +33,19 @@ class FhirProfileScanner {
   //  Profile Name, Discriminator=2, Slice Description, Element, Aliases, Card., Inv., Type,
   //  Must Support, Binding, Value, Pattern, Example, Max Length, Short Label, Definition,
   //  Requirements, Comments, To Do, RIM Mapping, v2 Mapping, Display Hint, Committee Notes
-  static final String LABEL_ELEMENT = 'Element'
-  static final String LABEL_CARD = 'Card.'
-  static final String LABEL_TYPE = 'Type'
-  static final String LABEL_MUST_SUPPORT = 'Must Support'
-  static final String LABEL_BINDING = 'Binding'
-  static final String LABEL_VALUE = 'Value'
-  static final String LABEL_SHORT_LABEL = 'Short Label'
-  static final String LABEL_DEFINITION = 'Definition'
-  static final String LABEL_IS_MODIFIER = 'Is Modifier' // not in profile-spreadsheet (only used in resource spreadsheet)
+  public static final String LABEL_ELEMENT = 'Element'
+  public static final String LABEL_CARD = 'Card.'
+  public static final String LABEL_TYPE = 'Type'
+  public static final String LABEL_MUST_SUPPORT = 'Must Support'
+  public static final String LABEL_BINDING = 'Binding'
+  public static final String LABEL_VALUE = 'Value'
+  public static final String LABEL_SHORT_LABEL = 'Short Label'
+  public static final String LABEL_DEFINITION = 'Definition'
+  public static final String LABEL_IS_MODIFIER = 'Is Modifier' // not in profile-spreadsheet (only used in resource spreadsheet)
 
   // labels in Binding worksheet
-  static final String LABEL_BINDING_NAME = "Binding Name"
-  static final String LABEL_REFERENCE = "Reference"
+  public static final String LABEL_BINDING_NAME = "Binding Name"
+  public static final String LABEL_REFERENCE = "Reference"
 
   final ExcelReader reader = new ExcelReader()
   private final Pattern profilePattern
@@ -370,7 +370,7 @@ class FhirProfileScanner {
     // implement in subclasses
   }
 
-  int getIndex(Map<String, Integer> index, String key) {
+  static int getIndex(Map<String, Integer> index, String key) {
     Integer val = index.get(key)
     if (val == null) throw new IllegalArgumentException("Column $key not found")
     return val
