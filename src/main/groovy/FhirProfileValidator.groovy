@@ -84,6 +84,7 @@ class FhirProfileValidator extends FhirProfileScanner {
     int cardIdx = index.get(LABEL_CARD)
     int typeIdx = index.get(LABEL_TYPE)
     int mustIdx = index.get(LABEL_MUST_SUPPORT)
+    Integer shortIdx = index.get(LABEL_SHORT_LABEL) // optional
     Integer bindIdx = index.get(LABEL_BINDING) // optional
     Integer valueIdx = index.get(LABEL_VALUE) // optional
     List<String> warnings = new ArrayList<>()
@@ -146,12 +147,20 @@ class FhirProfileValidator extends FhirProfileScanner {
       final String cardinality = worksheet.getCellAt(i, cardIdx).getData$() ?: ''
 	  String val = worksheet.getCellAt(i, mustIdx).getData$() // Y, y, Yes, N, No, or empty
       boolean mustSupport = val && val.toUpperCase().startsWith('Y')
-      Set flags =  new TreeSet()
+      Set<String> flags = new TreeSet<>()
       if (mustSupport) flags.add('S')
       if (bindIdx) {
         String binding = worksheet.getCellAt(i, bindIdx).getData$()?.trim()
         // TODO validate binding compared to base resource
-        if (binding) flags.add('V')
+        if (binding) {
+          flags.add('V')
+          // if have binding then should specify short
+          if (shortIdx) {
+            val = worksheet.getCellAt(i, shortIdx).getData$().trim()
+            if (val.isEmpty())
+              warnings.add("element has binding and should specify a short value: " + eltName)
+          }
+        }
       }
       if (valueIdx) {
         String value = worksheet.getCellAt(i, valueIdx).getData$()?.trim()
@@ -165,6 +174,7 @@ class FhirProfileValidator extends FhirProfileScanner {
       String type = worksheet.getCellAt(i, typeIdx).getData$()?.trim() ?: ''
       // println "flags: " + flags.join(', ')
       if (details == null) {
+        // no base definition
         if (count++ == 0) {
           printHeader()
           out.println(TABLE_DEF)
@@ -183,6 +193,7 @@ class FhirProfileValidator extends FhirProfileScanner {
         // diff++
         continue
       }
+
       // base resource element cardinality
       final String baseCard = details.card
 
@@ -201,6 +212,8 @@ class FhirProfileValidator extends FhirProfileScanner {
         typeDiff = true
         if (type) errors++ // if type not defined then not an error but intentional omission
       }
+
+      // check cardinality
 
       if (baseCard && baseCard != cardinality) {
         String name = id + "." + eltName
@@ -224,16 +237,21 @@ class FhirProfileValidator extends FhirProfileScanner {
           if (cardinality) {
             if (exp != null) println "XX: mismatch cqf exception $exp $cardinality"
             printf '\t%s\t%s\t%s%n', eltName, baseCard, cardinality
-            char cardLow = cardinality.charAt(0)
+            char cardMin = cardinality.charAt(0)
             String cardPrint
-            if (cardLow != baseCard.charAt(0))
-              cardPrint = '<B class="big">' + cardLow + "</B>" + cardinality.substring(1)
-            else cardPrint = String.valueOf(cardLow) + '<B class="big">' + cardinality.substring(1) + "</B>"
-            out.printf('<tr><td>%s<td>%s<td class="error">%s<br>%s', eltName, flags.join(', '), baseCard, cardPrint)
+            if (cardMin != baseCard.charAt(0))
+              cardPrint = '<B class="big">' + cardMin + "</B>" + cardinality.substring(1)
+            else cardPrint = String.valueOf(cardMin) + '<B class="big">' + cardinality.substring(1) + "</B>"
+            // making optional element required is not an error or warning
+            String classType = cardMin == '1' && baseCard.startsWith('0') ? 'info' : 'error'
+            out.printf('<tr><td>%s<td>%s<td class="%s">%s<br>%s', eltName, flags.join(', '), classType, baseCard, cardPrint)
           } else {
             out.printf('<tr><td>%s<td>%s<td class="error">%s', eltName, flags.join(', '), baseCard)
           }
         }
+
+        // output type field
+
         boolean truncated = false
         String origBaseType = baseType, origType = type
         if (baseType.length() > 33) {
@@ -248,7 +266,11 @@ class FhirProfileValidator extends FhirProfileScanner {
           }
           typeDef += '<br>' + type
         }
-        String classType = typeDiff && type ? 'error' : 'info'
+        String classType = typeDiff && type ? 'error' : type || baseType.isEmpty() ? '' : 'empty'
+        if (classType == 'empty') {
+          typeDef = "<span title='type unspecified in profile'>$typeDef</span>"
+        }
+        //if (eltName == 'DiagnosticReport.performer') printf "X: class=%s dif=%b type=%s [%s]%n", classType, typeDiff, baseType, type // debug
         if (truncated) {
           out.printf('''<td%s>
 <span class="dropt">%s
@@ -256,6 +278,7 @@ class FhirProfileValidator extends FhirProfileScanner {
 </span>%n''', typeDiff ? " class='$classType'" : '', typeDef,
                   reformatType(origBaseType), reformatType(origType))
         } else {
+          //typeDef += "/class=" + classType //debug
           out.printf('<td%s>%s%n', typeDiff ? " class='$classType'" : '', typeDef)
         }
       } else if (typeDiff) {
@@ -278,10 +301,13 @@ class FhirProfileValidator extends FhirProfileScanner {
           }
           classType = 'error'
           typeDetail = "$baseType<br>$type"
+        } else if (baseType.isEmpty()) {
+          classType = ''
+          typeDetail = ''
         } else {
-          classType = 'info'
-          // element type in profile is unspecified
+          classType = 'empty' // green cell
           typeDetail = baseType
+          // element type in profile is unspecified and used base value
         }
         if (truncated) {
           out.printf('''<tr><td>%s<td>%s<td>%s<td class="%s">
@@ -290,6 +316,8 @@ class FhirProfileValidator extends FhirProfileScanner {
 </span>%n''', eltName, flags.join(', '), cardinality,
               classType, typeDetail, origBaseType, origType)
         } else {
+          if(classType == 'empty') typeDetail = "<span title='type unspecified in profile'>$baseType</span>"
+          //typeDetail += "/class=" + classType //debug
           out.printf('<tr><td>%s<td>%s<td>%s<td class="%s">%s%n',
             eltName, flags.join(', '), cardinality, classType, typeDetail)
         }
@@ -437,7 +465,15 @@ class FhirProfileValidator extends FhirProfileScanner {
       println "\tindex: set default column labels"
       defaultIdx = index
     } else if (!defaultIdx.equals(index)) {
-      warn("different column labels: $index")
+      if(defaultIdx.keySet().equals(index.keySet())) {
+        warn("different column label ordering")
+      } else {
+        def difference = new TreeMap(index)
+        defaultIdx.keySet().each{ String key ->
+          if (index.get(key) != null) difference.remove(key)
+        }
+        warn("different column labels: $difference")
+      }
     } else println "\tindex: column labels okay"
   }
 
@@ -471,9 +507,17 @@ class FhirProfileValidator extends FhirProfileScanner {
       line-height: 150%;
       background-color: red;
     }
-    td.info {
+    td.warn {
+      line-height: 150%;
+      background-color: yellow;
+    }
+    td.empty  {
       line-height: 150%;
       background-color: #00ff00;
+    }
+    td.info {
+      line-height: 150%;
+      background-color: #3366FF;
     }
     b.big {
       font-size: 110%;
