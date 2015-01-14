@@ -1,3 +1,7 @@
+# warnings that are suppressed in validation report
+cqf-condition.ignoreWarn=element has binding and should specify a short value: Condition.certainty
+cqf-condition-refuted.ignoreWarn=element has binding and should specify a short value: Condition.certainty
+
 # intentional overriden properties in base resources for cqf profiles
 cqf-allergyintolerance-refuted.AllergyIntolerance.status.card=1..1
 cqf-immunization.Immunization.explanation.refusalReason.card=0..0

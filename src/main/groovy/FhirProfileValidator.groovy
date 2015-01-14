@@ -33,6 +33,9 @@ class FhirProfileValidator extends FhirProfileScanner {
   static final String TABLE_DEF = '<table style="border:1px solid black; border-collapse:collapse; margin-left:30px;"><tr><th>Element<th>Flags<th>Card.<th>Type'
   static final String baseUrl = 'http://hl7-fhir.github.io/'
 
+  // allow specific warnings on per profile basis to be ignored
+  final Set<String> ignoreWarnings = new HashSet<>()
+
   // profile specific exceptions that override cardinality in base resource
   final Map<String, String> exceptions = new TreeMap<>()
 
@@ -53,6 +56,8 @@ class FhirProfileValidator extends FhirProfileScanner {
           String key = entry.getKey()
           if (key.endsWith('.card')) {
             exceptions.put(key.substring(0, key.length()-5), entry.getValue())
+          } else if (key.endsWith('.ignoreWarn')) {
+            ignoreWarnings.add(key.substring(0, key.length()-11) + ":" + entry.getValue())
           }
           // TODO: support other exceptions (e.g. type override)
         }
@@ -146,7 +151,14 @@ class FhirProfileValidator extends FhirProfileScanner {
 
       final String cardinality = worksheet.getCellAt(i, cardIdx).getData$() ?: ''
 	  String val = worksheet.getCellAt(i, mustIdx).getData$() // Y, y, Yes, N, No, or empty
-      boolean mustSupport = val && val.toUpperCase().startsWith('Y')
+      final boolean mustSupport = val && val.toUpperCase().startsWith('Y')
+
+      // Conformance: 2.11.0.11 Must Support
+      // If creating a profile based on another profile,
+      // Must Support can be changed from false to true, but *CANNOT* be changed from true to false.
+      // https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html
+      // All core FHIR resources have default mustSupport=false so no need to check this for profiles based on core resources.
+
       Set<String> flags = new TreeSet<>()
       if (mustSupport) flags.add('S')
       if (bindIdx) {
@@ -165,6 +177,8 @@ class FhirProfileValidator extends FhirProfileScanner {
       if (valueIdx) {
         String value = worksheet.getCellAt(i, valueIdx).getData$()?.trim()
         if (value) {
+          // possibly copy/pasted short label into fixed value field
+          // if (value =~ /[|,]/) println "X: possible bad fixed value: $val"
           flags.add('F')
           // TODO validate fixed value
           // println "X: ${profile.name} $eltName value $value"
@@ -242,8 +256,14 @@ class FhirProfileValidator extends FhirProfileScanner {
             if (cardMin != baseCard.charAt(0))
               cardPrint = '<B class="big">' + cardMin + "</B>" + cardinality.substring(1)
             else cardPrint = String.valueOf(cardMin) + '<B class="big">' + cardinality.substring(1) + "</B>"
-            // making optional element required is not an error or warning
+            // making optional element required is not an error or warning (e.g. 0..1 => 1..1 is allowed)
             String classType = cardMin == '1' && baseCard.startsWith('0') ? 'info' : 'error'
+
+            // https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html#2.11.0.3
+            // 2.11.0.3 Limitations of Use
+            // Profiles cannot break the rules established in the base specification (e.g. if the element
+            // cardinality is 1..1 in the base specification, a profile cannot say it is 0..1, or 1..*).
+
             out.printf('<tr><td>%s<td>%s<td class="%s">%s<br>%s', eltName, flags.join(', '), classType, baseCard, cardPrint)
           } else {
             out.printf('<tr><td>%s<td>%s<td class="error">%s', eltName, flags.join(', '), baseCard)
@@ -569,9 +589,11 @@ class FhirProfileValidator extends FhirProfileScanner {
   }
 
   void warn(String msg) {
-    printHeader()
-    logMsg('WARN', 'ffff00', msg)
-    warnCount++
+    if (ignoreWarnings.isEmpty() || !ignoreWarnings.contains(profile.name + ":" + msg)) {
+      printHeader()
+      logMsg('WARN', 'ffff00', msg)
+      warnCount++
+    }
   }
 
   void error(String msg) {
