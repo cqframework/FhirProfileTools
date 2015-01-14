@@ -29,6 +29,9 @@ The FhirProfileValidator can identify the following situations:
    want the profile to match the same type.
  * if profile misses any elements that are defined in the base resource which could have
    been added or renamed after the profile was created.
+   
+Additional Documentation:
+* [Customizing Validation Rules](customRules.md)
 
 # How to build
 
@@ -47,7 +50,7 @@ If you already have Gradle installed then you can substitute the command gradle 
 listed above.
 
     gradle test
-	
+
 # Running
 
 To run on FHIR profiles you first need to create a `config.dat` file in top-level
@@ -62,6 +65,8 @@ the following 3 properties:
    only those profiles of interest in processing and skip all others.
  * **profileRules** - profile rules and explicit exceptions (e.g. cqf-rules.dat).
    This is optional but strongly recommended.
+   
+See also [Customizing Validation Rules](customRules.md).
  
 Now to run the validator with config.dat, run `validate` task in gradle:
 
@@ -70,7 +75,7 @@ Now to run the validator with config.dat, run `validate` task in gradle:
 To generate HTML javadoc-like documentation for the profiles as classes run `runHtml` task:
 
      gradlew runHtml
-
+	 
 # Dependencies
 
 The scripts use the [Java to SpreadsheetML](http://sourceforge.net/projects/xelem/)
