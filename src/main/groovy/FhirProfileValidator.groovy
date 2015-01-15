@@ -157,6 +157,7 @@ class FhirProfileValidator extends FhirProfileScanner {
       // If creating a profile based on another profile,
       // Must Support can be changed from false to true, but *CANNOT* be changed from true to false.
       // https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html
+      // http://hl7-fhir.github.io/profiling.html
       // All core FHIR resources have default mustSupport=false so no need to check this for profiles based on core resources.
 
       Set<String> flags = new TreeSet<>()
@@ -236,34 +237,69 @@ class FhirProfileValidator extends FhirProfileScanner {
           printHeader()
           out.println(TABLE_DEF)
         }
-        def exp = exceptions.get(name)
-        if (exp == cardinality) {
-          // cardinality is correct exception - green color
-          char cardLow = cardinality.charAt(0)
-          String cardPrint
-          if (cardLow != baseCard.charAt(0))
-            cardPrint = '<B class="big">' + cardLow + "</B>" + cardinality.substring(1)
-          else cardPrint = String.valueOf(cardLow) + '<B class="big">'  + cardinality.substring(1) + "</B>"
-          out.printf('<tr><td>%s<td>%s<td class="overrideCard">%s<br><span title="expected cardinality">%s (*)</span>',
-                  eltName, flags.join(', '), baseCard, cardPrint)
-        } else {
+        String cardPrint = null
+        String expectedCard = exceptions.get(name)
+        if (cardinality == expectedCard) {
+          int ind = cardinality.indexOf('..')
+          if (ind > 0) {
+            // cardinality is correct exception - green color
+            String cardLow = cardinality.substring(0, ind)
+            if (cardLow != baseCard.substring(0, ind))
+              cardPrint = '<B class="big">' + cardLow + "</B>" + cardinality.substring(ind)
+            else cardPrint = String.valueOf(cardLow) + '..<B class="big">' + cardinality.substring(ind+2) + "</B>"
+            out.printf('<tr><td>%s<td>%s<td class="overrideCard">%s<br><span title="expected cardinality">%s (*)</span>',
+                    eltName, flags.join(', '), baseCard, cardPrint)
+          }
+          // otherwise expected cardinality is invalid - handle in next stage of validation
+        }
+        if (cardPrint == null) {
           errors++
           if (cardinality) {
-            if (exp != null) println "XX: mismatch cqf exception $exp $cardinality"
+            if (expectedCard) warnings.add("mismatch expected cardinality: expected $expectedCard but was $cardinality".toString())
             printf '\t%s\t%s\t%s%n', eltName, baseCard, cardinality
-            char cardMin = cardinality.charAt(0)
-            String cardPrint
-            if (cardMin != baseCard.charAt(0))
-              cardPrint = '<B class="big">' + cardMin + "</B>" + cardinality.substring(1)
-            else cardPrint = String.valueOf(cardMin) + '<B class="big">' + cardinality.substring(1) + "</B>"
-            // making optional element required is not an error or warning (e.g. 0..1 => 1..1 is allowed)
-            String classType = cardMin == '1' && baseCard.startsWith('0') ? 'info' : 'error'
-
-            // https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html#2.11.0.3
-            // 2.11.0.3 Limitations of Use
-            // Profiles cannot break the rules established in the base specification (e.g. if the element
-            // cardinality is 1..1 in the base specification, a profile cannot say it is 0..1, or 1..*).
-
+            String classType = null
+            cardPrint = cardinality
+            if (baseCard == '0..1' && (cardinality == '1..1' || cardinality == '0..0')) {
+              // making optional element required is not an error or warning (i.e., 0..1 => 1..1 is allowed)
+              // and ruling out an optional element by setting max card = 0 is also allowed (i.e., 0..1 => 0..0)
+              classType = 'info'
+            } else if (baseCard == '1..1' && (cardinality == '0..1' || cardinality == '1..*')) {
+              // 2.11.0.3 Limitations of Use
+              // Profiles cannot break the rules established in the base specification (e.g. if the element
+              // cardinality is 1..1 in the base specification, a profile cannot say it is 0..1, or 1..*).
+              // Source: https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html#2.11.0.3
+              classType = 'error'
+            }
+            try {
+              def card = new Cardinality(cardinality)
+              if (classType == null) {
+                if (card.min >= 0 && card.min <= card.max) {
+                  // In a profile, you can specify any combination of cardinalities, as long as min <= max, and min >= 0.
+                  // Source: http://wiki.hl7.org/index.php?title=FHIR_conformance_and_cardinality
+                  classType = 'info'
+                  // TODO: check other cardinality combinations here
+                } else {
+                  classType = 'error'
+                }
+              }
+              // following just to highlight the parts of the cardinality in BOLD that differ from the base cardinality
+              try {
+                def base = new Cardinality(baseCard)
+                if (card.min != base.min)
+                  cardPrint = String.format('<B class="big">%d</B>..', card.min)
+                else
+                  cardPrint = String.format('%d..', card.min)
+                if (card.maxVal != base.maxVal)
+                  cardPrint += String.format('<B class="big">%s</B>', card.maxVal)
+                else
+                  cardPrint += card.maxVal
+              } catch (IllegalArgumentException e) {
+                // failed to parse base cardinality
+              }
+            } catch (IllegalArgumentException e) {
+              classType = 'error'
+              println "X: bad card: $cardinality: $e"
+            }
             out.printf('<tr><td>%s<td>%s<td class="%s">%s<br>%s', eltName, flags.join(', '), classType, baseCard, cardPrint)
           } else {
             out.printf('<tr><td>%s<td>%s<td class="error">%s', eltName, flags.join(', '), baseCard)
@@ -403,7 +439,7 @@ class FhirProfileValidator extends FhirProfileScanner {
 
     if (type.contains('|')) {
       // type contains a list
-      def baseTypes = new HashSet<>() // Arrays.asList(baseType.split('|'))
+      def baseTypes = new HashSet<>()
       baseType.split('\\|').each{ String s ->
         baseTypes.add(getBaseType(s))
       }
@@ -416,7 +452,7 @@ class FhirProfileValidator extends FhirProfileScanner {
       if (baseType.startsWith('Reference(') && !type.startsWith('Reference(')) {
         warnings.add("$eltName: type does not have Reference() prefix: base type=$baseType profile type=$type".toString())
       }
-      // allow short-hand e.g.; base type = Reference(Specimen), type = Specimen ??
+      // allow short-hand; e.g. base type = Reference(Specimen), type = Specimen ??
       // type contains profile target reference; e.g. Reference(Patient){http://hl7.org/fhir/Profile/patient-daf-dafpatient}
       baseType = getBaseType(baseType)
       type = getBaseType(type)
@@ -604,6 +640,28 @@ class FhirProfileValidator extends FhirProfileScanner {
 
   void logMsg(String level, String color, String msg) {
     out.printf('<br><div style="width:400px; background-color: #%s"><B>%s: %s</b></div>%n', color, level, msg)
+  }
+
+  static class Cardinality {
+    final int min, max
+    final String maxVal
+    /**
+     * Decode cardinality string into its parts
+     * @param cardinality
+     * @throws IllegalArgumentException if cardinality is invalid and not of the
+     * form min..max where min is an integer and max is '*' or a number
+     */
+    Cardinality(String cardinality) {
+      def m = cardinality =~ /^(\d+)\.\.(\d+|\*)$/
+      if (!m) throw new IllegalArgumentException()
+      min = Integer.parseInt(m.group(1))
+      maxVal = m.group(2)
+      max = maxVal == '*' ? Integer.MAX_VALUE : Integer.parseInt(maxVal)
+    }
+
+    String toString() {
+      return min + '..' + maxVal
+    }
   }
 
 } // FhirProfileValidator
