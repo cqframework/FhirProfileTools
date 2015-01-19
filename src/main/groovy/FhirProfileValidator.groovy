@@ -42,7 +42,7 @@ class FhirProfileValidator extends FhirProfileScanner {
   File outputDir
   PrintWriter out
   int errCount, warnCount
-  Map<String, Integer> defaultIdx
+  final Map<String, Integer> defaultIdx, defaultIdx2
 
   FhirProfileValidator(Pattern profilePattern, File ruleFile) {
     super(profilePattern)
@@ -64,6 +64,26 @@ class FhirProfileValidator extends FhirProfileScanner {
       } finally {
         IOUtils.closeQuietly(is)
       }
+    }
+
+    // set of 24 columns in default profile worksheet template
+    // column mapping: [ 'Profile Name':'1', 'Discriminator':'2', 'Slice Description':'3', 'Element':'4', 'Aliases':'5', 'Card.':'6', ... ]
+    def defaultColumns = [ 'Profile Name','Discriminator','Slice Description','Element','Aliases',
+                           'Card.','Inv.','Type','Must Support','Binding','Value','Pattern','Example',
+                           'Max Length','Short Label','Definition','Requirements','Comments','To Do',
+                           'RIM Mapping','v2 Mapping','??? Mapping','Display Hint','Committee Notes']
+
+    defaultIdx = new TreeMap<String,Integer>()
+    defaultColumns.eachWithIndex { key, idx ->
+      defaultIdx.put(key, idx + 1)
+    }
+
+    // alternative set of column mappings with QUICK Mapping in 22th column with 25 columns
+    // e.g. [ ..., 'v2 Mapping':'21', 'QUICK Mapping':'22', '??? Mapping':'23', 'Display Hint':'24', 'Committee Notes':'25' ]
+    defaultColumns.add(21, 'QUICK Mapping')
+    defaultIdx2 = new TreeMap<String,Integer>()
+    defaultColumns.eachWithIndex { key, idx ->
+      defaultIdx2.put(key, idx + 1)
     }
   }
 
@@ -93,7 +113,7 @@ class FhirProfileValidator extends FhirProfileScanner {
     Integer bindIdx = index.get(LABEL_BINDING) // optional
     Integer valueIdx = index.get(LABEL_VALUE) // optional
     List<String> warnings = new ArrayList<>()
-    List<String> elements = new ArrayList<>()
+    Set<String> elements = new HashSet<>()
     // iterate rows of structure worksheet in profile
     // skip header 1) and resource-level (2) rows starting at row #3
     main: for (int i=3; i < 50; i++) {
@@ -109,7 +129,24 @@ class FhirProfileValidator extends FhirProfileScanner {
           // profile is ignoring an element that is present in base resource which is allowed
           elements.add(eltName)
           rows++
-        } else println "XX: ignoreable element not in base resource: $rawEltName"
+        } else {
+          String baseName = eltName
+          // check if referencing subelement; e.g. !Practitioner.address.country
+          // keep stripping off last component until base name is found in base resource
+          // or only resource base name is left.
+          while(true) {
+            int ind = baseName.lastIndexOf('.')
+            if (ind <= resourceName.length()) break
+            // strip last component from name (e.g. Observation.name.coding => Observation.name)
+            baseName = eltName.substring(0, ind)
+            if (mapping.containsKey(baseName)) {
+              // println "X: skip subcomponent definition: $eltName $baseName" // debug
+              elements.add(baseName)
+              continue main
+            }
+          }
+          println "XX: ignoreable element not in base resource: $rawEltName"
+        }
         continue
         /*
         if (!mapping.containsKey(eltName)) {
@@ -245,8 +282,8 @@ class FhirProfileValidator extends FhirProfileScanner {
             // cardinality is correct exception - green color
             String cardLow = cardinality.substring(0, ind)
             if (cardLow != baseCard.substring(0, ind))
-              cardPrint = '<B class="big">' + cardLow + "</B>" + cardinality.substring(ind)
-            else cardPrint = String.valueOf(cardLow) + '..<B class="big">' + cardinality.substring(ind+2) + "</B>"
+              cardPrint = '<B class="big">' + cardLow + '</B>' + cardinality.substring(ind)
+            else cardPrint = String.valueOf(cardLow) + '..<B class="big">' + cardinality.substring(ind+2) + '</B>'
             out.printf('<tr><td>%s<td>%s<td class="overrideCard">%s<br><span title="expected cardinality">%s (*)</span>',
                     eltName, flags.join(', '), baseCard, cardPrint)
           }
@@ -450,7 +487,8 @@ class FhirProfileValidator extends FhirProfileScanner {
       return baseTypes.equals(profTypes)
     } else if (baseType.contains('(') || type.contains('{')) {
       if (baseType.startsWith('Reference(') && !type.startsWith('Reference(')) {
-        warnings.add("$eltName: type does not have Reference() prefix: base type=$baseType profile type=$type".toString())
+        //warnings.add("$eltName: type does not have Reference() prefix: base type=$baseType profile type=$type".toString())
+        return false
       }
       // allow short-hand; e.g. base type = Reference(Specimen), type = Specimen ??
       // type contains profile target reference; e.g. Reference(Patient){http://hl7.org/fhir/Profile/patient-daf-dafpatient}
@@ -514,18 +552,16 @@ class FhirProfileValidator extends FhirProfileScanner {
   void checkIndex(Map<String, Integer> index) {
     // FHIR template worksheet has 24 columns in Structure worksheet
     println "profile: " + profile.id
-
-    if (index.size() != 24) {
-      printf "\tindex[%d]: %s%n", index.size(), index
-    } else if (defaultIdx == null) {
-      println "\tindex: set default column labels"
-      defaultIdx = index
-    } else if (!defaultIdx.equals(index)) {
-      if(defaultIdx.keySet().equals(index.keySet())) {
-        warn("different column label ordering")
+    if (!defaultIdx.equals(index) && !defaultIdx2.equals(index)) {
+      def keys = index.keySet()
+      if(defaultIdx.keySet().equals(keys) || defaultIdx2.keySet().equals(keys)) {
+        warn('different column label ordering')
+        def reverseIdx = index.sort{ a, b -> a.value <=> b.value }
+        printf "\tindex[%d]: %s%n", index.size(), reverseIdx
       } else {
         def difference = new TreeMap(index)
-        defaultIdx.keySet().each{ String key ->
+        // remove default column labels from the list to show the new column names
+        defaultIdx2.keySet().each{ String key ->
           if (index.get(key) != null) difference.remove(key)
         }
         warn("different column labels: $difference")
