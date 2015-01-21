@@ -166,6 +166,7 @@ class FhirProfileScanner {
     // column index
     // 1=Element,2=Aliases,3=Card.,4=Inv.,5=Type,6=Is Modifier,7=Summary,8=Binding,9=Example,
     // 10=Default Value,11=Missing Meaning,12=Regex,13=Short Label,14=Definition,15=Requirements,...
+    // note: Definition column in worksheet maps to formal element in profile XML
     Map<String, Integer> index = getWorkSheetIndex(worksheet)
     int eltIdx, cardIdx, typeIdx, shortLabelIdx, isModIdx, defIdx
     try {
@@ -206,6 +207,9 @@ class FhirProfileScanner {
       String card = worksheet.getCellAt(i, cardIdx).getData$() // Cardinality
       String shortLabel = worksheet.getCellAt(i, shortLabelIdx).getData$()
       String type = worksheet.getCellAt(i, typeIdx).getData$().trim() // Type
+      // TODO: special handling for [x] types ??
+      // e.g. handle Condition.onsetAge wrt Condition.onset[x]
+      //if (name.endsWith('[x]')) println "X: $name $type"//debug
       String description = worksheet.getCellAt(i, defIdx).getData$().trim() // Definition
       boolean isModifier = false
       val = worksheet.getCellAt(i, isModIdx).getData$()
@@ -214,9 +218,31 @@ class FhirProfileScanner {
         isModifier = val == '1' || val.toUpperCase().startsWith('Y')
         // if (isModifier) println "X: $resourceName.$val [isModifier]"
       }
+
       mapping.put(name, new Details(card, type, description, shortLabel, isModifier))
     }
 
+    // add implicit elements common to all resources (e.g. resource.text)
+    // http://www.hl7.org/implement/standards/fhir/resources.html
+    String key = resourceName + '.text' // e.g. Condition.text
+    if (!mapping.containsKey(key)) {
+      def detail = new Details('0..1', 'Narrative', 'A human-readable narrative',
+              'Text summary of the resource, for human interpretation', false)
+      detail.common = true // flag as common resource element not explicitly in base resource profile
+      mapping.put(key, detail)
+    }
+    key = resourceName + '.text.status' // e.g. Condition.text.status
+    if (!mapping.containsKey(key)) {
+      def detail = new Details('1..1', 'code', 'The status of the narrative', '', false)
+      detail.common = true
+      mapping.put(key, detail)
+    }
+    key = resourceName + '.contained' // e.g. Condition.contained
+    if (!mapping.containsKey(key)) {
+      def detail = new Details('0..*', 'Reference(Any)', 'Contained Resources', '', false)
+      detail.common = true
+      mapping.put(key, detail)
+    }
     return mapping
   }
 
@@ -273,7 +299,7 @@ class FhirProfileScanner {
     Map<String, Integer> index = getWorkSheetIndex(worksheet)
     try {
       checkIndex(index)
-      // column index: [??? Mapping:22, Aliases:5, Binding:10, Card.:6, Comments:18, Committee Notes:24, ... ]
+      // column index: {Profile Name=1, Discriminator=2, Slice Description=3, Element=4, Aliases=5, Card.=6, Inv.=7, Type=8, ...
       // template worksheet has 24 columns in Structure work??
       // following 4 columns are required, others are optional
       // getIndex() throws IllegalArgumentException if column label not found
@@ -295,7 +321,7 @@ class FhirProfileScanner {
     Row row = worksheet.getRowAt(1)
     // iterate over columns in row 1 of structure worksheet
     for (int i = 1; i < 50; i++) {
-      // structure worksheet cannot have empty column name so stop when find empty cell
+      // structure worksheet cannot have empty column names so stop when find empty cell
       String val = row.getCellAt(i).getData$()
       if (val == null || val.isEmpty()) break
       index.put(val, i)
@@ -459,6 +485,7 @@ class FhirProfileScanner {
   static class Details {
     final String card, type, description, shortLabel
     final boolean isModifier
+    boolean common
 
     Details(String card, String type, String description, String shortLabel, boolean isModifier) {
       this.card = card

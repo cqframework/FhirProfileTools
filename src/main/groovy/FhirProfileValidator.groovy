@@ -423,19 +423,24 @@ class FhirProfileValidator extends FhirProfileScanner {
       warnings.each{ warn(it) }
     }
 
-    if (rows < mapping.size()) {
-      StringBuilder sb = new StringBuilder()
-      sb.append("check element list: rows=").append(rows)
-          .append(" mapping=").append(mapping.size())
+    if (rows != mapping.size()) {
       Set<String> set = new TreeSet<>()
-      mapping.keySet().each { String name ->
-        if (name.startsWith("!")) name = name.substring(1)
-        set.add(name)
+      mapping.each { String name, Details value ->
+        // don't add common elements (e.g. Condition.text)
+        if (!value.common) {
+          if (name.startsWith("!")) name = name.substring(1)
+          set.add(name)
+        }
       }
       set.removeAll(elements)
-      sb.append('<blockquote>').append('unmapped elements: ').append(set)
-          .append('</blockquote>')
-      warn(sb.toString())
+      if (!set.isEmpty()) {
+        StringBuilder sb = new StringBuilder()
+        sb.append('check element list: rows=').append(rows)
+                .append(" mapping=").append(mapping.size())
+        sb.append('<blockquote>').append('unmapped elements: ').append(set)
+                .append('</blockquote>')
+        warn(sb.toString())
+      }
     }
     // println "\t" + worksheetName
     //Row row = worksheet.getRowAt(2)
