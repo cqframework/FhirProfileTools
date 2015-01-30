@@ -140,7 +140,7 @@ class FhirProfileValidator extends FhirProfileScanner {
             // strip last component from name (e.g. Observation.name.coding => Observation.name)
             baseName = eltName.substring(0, ind)
             if (mapping.containsKey(baseName)) {
-              // println "X: skip subcomponent definition: $eltName $baseName" // debug
+              // println "X: skip subcomponent definition: $rawEltName $baseName" // debug
               elements.add(baseName)
               continue main
             }
@@ -156,6 +156,9 @@ class FhirProfileValidator extends FhirProfileScanner {
         */
       } //else if (eltName.endsWith('.identifier')) warn "identifier not masked: $eltName"
       Details details = mapping.get(eltName)
+      // NOTE: special [x] variable typed elements are auto-expanded to mapping table.
+      // e.g. Condition.onset[x] : dateTime | Age 0.. => Condition.onsetAge, Condition.onsetDateTime, etc.
+      // Profiles can specify the expanded names (e.g. Condition.onsetAge) in differential view.
       if (details == null && !rawEltName.startsWith('!')) {
         details = mapping.get("!" + eltName)
         if (details != null) {
@@ -179,9 +182,6 @@ class FhirProfileValidator extends FhirProfileScanner {
             }
           }
         }
-        // TODO: doesn't handle the special [x] variable typed elements;
-        // e.g. Condition.onset[x] : dateTime|Age 0.. => Condition.onsetAge, Condition.onsetDateTime, etc.
-        // profile can specify the expanded names (e.g. Condition.onsetAge)
       }
       rows++
       elements.add(eltName)
@@ -200,15 +200,17 @@ class FhirProfileValidator extends FhirProfileScanner {
       Set<String> flags = new TreeSet<>()
       if (mustSupport) flags.add('S')
       if (bindIdx) {
-        String binding = worksheet.getCellAt(i, bindIdx).getData$()?.trim()
-        // TODO validate binding compared to base resource
+        String binding = worksheet.getCellAt(i, bindIdx).getData$().trim()
         if (binding) {
           flags.add('V')
-          // if have binding then should specify short
+          // TODO validate binding compared to base resource
+          // if have binding then should specify short value
           if (shortIdx) {
             val = worksheet.getCellAt(i, shortIdx).getData$().trim()
-            if (val.isEmpty())
+            if (val.isEmpty() /*&& details?.parent == null*/) {
+              // REVIEW: if element is expanded [x] type (e.g. valueString, etc.) then ignore short value warning
               warnings.add("element has binding and should specify a short value: " + eltName)
+            }
           }
         }
       }
@@ -360,16 +362,18 @@ class FhirProfileValidator extends FhirProfileScanner {
           typeDef += '<br>' + type
         }
         String classType = typeDiff && type ? 'error' : type || baseType.isEmpty() ? '' : 'empty'
-        if (classType == 'empty') {
-          typeDef = "<span title='type unspecified in profile'>$typeDef</span>"
+        if (classType == 'empty' && !truncated) {
+            typeDef = "<span title='type unspecified in profile'>$typeDef</span>"
         }
         //if (eltName == 'DiagnosticReport.performer') printf "X: class=%s dif=%b type=%s [%s]%n", classType, typeDiff, baseType, type // debug
         if (truncated) {
+          String typeDetail = reformatType(origType)
+          if (classType == 'empty') typeDetail += '<BR>Type is unspecified in profile defaulting to base type.'
           out.printf('''<td%s>
 <span class="dropt">%s
 <span style="width:500px;">%s<BR>%s</span>
 </span>%n''', typeDiff ? " class='$classType'" : '', typeDef,
-                  reformatType(origBaseType), reformatType(origType))
+                  reformatType(origBaseType), typeDetail)
         } else {
           //typeDef += "/class=" + classType //debug
           out.printf('<td%s>%s%n', typeDiff ? " class='$classType'" : '', typeDef)
@@ -398,16 +402,18 @@ class FhirProfileValidator extends FhirProfileScanner {
           classType = ''
           typeDetail = ''
         } else {
+          // element type in profile is unspecified and uses base value
           classType = 'empty' // green cell
           typeDetail = baseType
-          // element type in profile is unspecified and used base value
         }
         if (truncated) {
+          String origTypeDetail = origType
+          if (classType == 'empty') origTypeDetail += '<BR>Type is unspecified in profile defaulting to base type.'
           out.printf('''<tr><td>%s<td>%s<td>%s<td class="%s">
 <span class="dropt">%s
 <span style="width:500px;">%s<BR>%s</span>
 </span>%n''', eltName, flags.join(', '), cardinality,
-              classType, typeDetail, origBaseType, origType)
+              classType, typeDetail, origBaseType, origTypeDetail)
         } else {
           if(classType == 'empty') typeDetail = "<span title='type unspecified in profile'>$baseType</span>"
           //typeDetail += "/class=" + classType //debug
@@ -427,7 +433,8 @@ class FhirProfileValidator extends FhirProfileScanner {
       Set<String> set = new TreeSet<>()
       mapping.each { String name, Details value ->
         // don't add common elements (e.g. Condition.text)
-        if (!value.common) {
+        // don't add expanded [x] types (parent != null)
+        if (!value.common && value.parent == null) {
           if (name.startsWith("!")) name = name.substring(1)
           set.add(name)
         }
@@ -630,7 +637,9 @@ class FhirProfileValidator extends FhirProfileScanner {
       border-style:solid; border-color:black; border-width:1px;}
     span.dropt:hover span {margin: 20px 0 0 70px; background: #ffffff; z-index:6;}
     </style>
-    </head><body>''')
+    </head>
+    <body>
+    <h1>FHIR Profile Validation Conformance Report</h1>''')
   }
 
   @TypeChecked
@@ -650,7 +659,7 @@ class FhirProfileValidator extends FhirProfileScanner {
   @TypeChecked
   void printResourceName() {
     super.printResourceName()
-      out.printf('\n<hr>\n<h1>%s&nbsp;<a href="%s%s.html"><img src="images/external_link_icon.gif"></a></h1>',
+      out.printf('\n<hr>\n<h2>%s&nbsp;<a href="%s%s.html"><img src="images/external_link_icon.gif"></a></h2>',
               resourceName, baseUrl, resourceName.toLowerCase())
   }
 
@@ -660,7 +669,7 @@ class FhirProfileValidator extends FhirProfileScanner {
     if (profile && profile != lastProfile) {
       String name = (profile.id ?: profile.name)
       // println "profile: $name"
-      out.println("<h2>profile: " + name + "</h2>")
+      out.println("<h3>profile: " + name + "</h3>")
       lastProfile = profile
     }
   }
