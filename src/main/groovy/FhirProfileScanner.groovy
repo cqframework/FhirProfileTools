@@ -15,6 +15,7 @@ import nl.fountain.xelem.excel.Row
 import nl.fountain.xelem.excel.Workbook
 import nl.fountain.xelem.excel.Worksheet
 import nl.fountain.xelem.lex.ExcelReader
+import org.apache.commons.lang.StringUtils
 
 import java.util.regex.Pattern
 
@@ -207,9 +208,6 @@ class FhirProfileScanner {
       String card = worksheet.getCellAt(i, cardIdx).getData$() // Cardinality
       String shortLabel = worksheet.getCellAt(i, shortLabelIdx).getData$()
       String type = worksheet.getCellAt(i, typeIdx).getData$().trim() // Type
-      // TODO: special handling for [x] types ??
-      // e.g. handle Condition.onsetAge wrt Condition.onset[x]
-      //if (name.endsWith('[x]')) println "X: $name $type"//debug
       String description = worksheet.getCellAt(i, defIdx).getData$().trim() // Definition
       boolean isModifier = false
       val = worksheet.getCellAt(i, isModIdx).getData$()
@@ -218,8 +216,25 @@ class FhirProfileScanner {
         isModifier = val == '1' || val.toUpperCase().startsWith('Y')
         // if (isModifier) println "X: $resourceName.$val [isModifier]"
       }
+      def baseDetail = new Details(card, type, description, shortLabel, isModifier)
+      mapping.put(name, baseDetail)
 
-      mapping.put(name, new Details(card, type, description, shortLabel, isModifier))
+      // special handling for [x] types
+      // expand type variations and add to mapping
+      // e.g. handle Condition.onsetAge wrt Condition.onset[x]
+      if (name.endsWith('[x]')) {
+        //println "X: $name $type" //debug
+        final String baseName = name.substring(0, name.length() - 3)
+        type.split(/\s*\|\s*/).each { String typeDef ->
+          String path = baseName + StringUtils.capitalize(typeDef)
+          // Observation.value[x] => Observation.valueQuantity
+          // Observation.value[x] string => valueString not valuestring
+          //println "\t$path"
+          def detail = new Details(card, typeDef, description, shortLabel, isModifier)
+          detail.parent = baseDetail
+          mapping.put(path, detail)
+        }
+      }
     }
 
     // add implicit elements common to all resources (e.g. resource.text)
@@ -486,6 +501,7 @@ class FhirProfileScanner {
     final String card, type, description, shortLabel
     final boolean isModifier
     boolean common
+    Details parent
 
     Details(String card, String type, String description, String shortLabel, boolean isModifier) {
       this.card = card
