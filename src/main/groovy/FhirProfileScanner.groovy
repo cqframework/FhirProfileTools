@@ -47,6 +47,9 @@ class FhirProfileScanner {
   // labels in Binding worksheet
   public static final String LABEL_BINDING_NAME = "Binding Name"
   public static final String LABEL_REFERENCE = "Reference"
+  public static final String LABEL_EXAMPLE = 'Example' // resource binding only
+  public static final String LABEL_CONFORMANCE = 'Conformance' // non-resource binding only
+  public static final String LABEL_EXTENSIBLE = 'Extensible' // non-resource binding only
 
   final ExcelReader reader = new ExcelReader()
   private final Pattern profilePattern
@@ -169,12 +172,13 @@ class FhirProfileScanner {
     // 10=Default Value,11=Missing Meaning,12=Regex,13=Short Label,14=Definition,15=Requirements,...
     // note: Definition column in worksheet maps to formal element in profile XML
     Map<String, Integer> index = getWorkSheetIndex(worksheet)
-    int eltIdx, cardIdx, typeIdx, shortLabelIdx, isModIdx, defIdx
+    int eltIdx, cardIdx, typeIdx, bindIdx, shortLabelIdx, isModIdx, defIdx
     try {
       eltIdx = getIndex(index, LABEL_ELEMENT)
       cardIdx = getIndex(index, LABEL_CARD)
       typeIdx = getIndex(index, LABEL_TYPE)
       isModIdx = getIndex(index, LABEL_IS_MODIFIER)
+      bindIdx = getIndex(index, LABEL_BINDING)
       shortLabelIdx = getIndex(index, LABEL_SHORT_LABEL)
       defIdx = getIndex(index, LABEL_DEFINITION)
     } catch (IllegalArgumentException e) {
@@ -208,6 +212,7 @@ class FhirProfileScanner {
       String card = worksheet.getCellAt(i, cardIdx).getData$() // Cardinality
       String shortLabel = worksheet.getCellAt(i, shortLabelIdx).getData$()
       String type = worksheet.getCellAt(i, typeIdx).getData$().trim() // Type
+      String binding = worksheet.getCellAt(i, bindIdx).getData$().trim() // Binding
       String description = worksheet.getCellAt(i, defIdx).getData$().trim() // Definition
       boolean isModifier = false
       val = worksheet.getCellAt(i, isModIdx).getData$()
@@ -217,6 +222,7 @@ class FhirProfileScanner {
         // if (isModifier) println "X: $resourceName.$val [isModifier]"
       }
       def baseDetail = new Details(card, type, description, shortLabel, isModifier)
+      if (binding) baseDetail.binding = binding
       mapping.put(name, baseDetail)
 
       // special handling for [x] types
@@ -499,8 +505,15 @@ class FhirProfileScanner {
   @TypeChecked
   static class Details {
     final String card, type, description, shortLabel
+    String binding
     final boolean isModifier
     boolean common
+
+    /**
+     * A parent element means the element was derived from a parent type of the form name[x].
+     * Example: Observation.value[x] where the type is list: { Quantity|dateTime|Period|string|...+ }
+     * and derived elements Observation.valueQuantity are added to mapping.
+     */
     Details parent
 
     Details(String card, String type, String description, String shortLabel, boolean isModifier) {
