@@ -188,7 +188,7 @@ class FhirProfileValidator extends FhirProfileScanner {
 
       final String cardinality = worksheet.getCellAt(i, cardIdx).getData$() ?: ''
 	  String val = worksheet.getCellAt(i, mustIdx).getData$() // Y, y, Yes, N, No, or empty
-      final boolean mustSupport = val && val.toUpperCase().startsWith('Y')
+      final boolean mustSupport = isYesValue(val)
 
       // Conformance: 2.11.0.11 Must Support
       // If creating a profile based on another profile,
@@ -292,7 +292,6 @@ class FhirProfileValidator extends FhirProfileScanner {
           // otherwise expected cardinality is invalid - handle in next stage of validation
         }
         if (cardPrint == null) {
-          errors++
           if (cardinality) {
             if (expectedCard) warnings.add("mismatch expected cardinality: expected $expectedCard but was $cardinality".toString())
             printf '\t%s\t%s\t%s%n', eltName, baseCard, cardinality
@@ -339,6 +338,7 @@ class FhirProfileValidator extends FhirProfileScanner {
               classType = 'error'
               println "X: bad card: $cardinality: $e"
             }
+            if(classType == 'error') errors++
             out.printf('<tr><td>%s<td>%s<td class="%s">%s<br>%s', eltName, flags.join(', '), classType, baseCard, cardPrint)
           } else {
             out.printf('<tr><td>%s<td>%s<td class="error">%s', eltName, flags.join(', '), baseCard)
@@ -472,6 +472,18 @@ class FhirProfileValidator extends FhirProfileScanner {
     } else {
       errCount += errors
     }
+  }
+
+  static boolean isYesValue(String s) {
+    if (s != null) {
+      s = s.trim()
+      if (!s.isEmpty() && s.toUpperCase().startsWith('Y')) {
+        // Y, y, Yes, yes, etc. is true
+        return true
+      }
+      // N, n, no, No, blank, etc. is false
+    }
+    return false
   }
 
  /**
