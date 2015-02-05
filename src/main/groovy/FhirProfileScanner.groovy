@@ -267,8 +267,44 @@ class FhirProfileScanner {
     return mapping
   }
 
-
+  /**
+   * Check profile
+   * @param mapping  Mapping of base resource
+   * @param file  File path to profile
+   */
   void checkProfile(Map<String, Details> mapping, File file) {
+
+    Worksheet worksheet = getProfileWorksheet(file, profile)
+    if (worksheet == null) return
+
+    //int eltIdx = 4, cardIdx = 6, typeIdx = 7, mustIdx = 8
+    Map<String, Integer> index = getWorkSheetIndex(worksheet)
+    try {
+      checkIndex(index)
+      // column index: {Profile Name=1, Discriminator=2, Slice Description=3, Element=4, Aliases=5, Card.=6, Inv.=7, Type=8, ...
+      // template worksheet has 24 columns in Structure work??
+      // following 4 columns are required, others are optional
+      // getIndex() throws IllegalArgumentException if column label not found
+      verifyIndex(index, LABEL_ELEMENT, 4)
+      verifyIndex(index, LABEL_CARD, 6)
+      verifyIndex(index, LABEL_TYPE, 8)
+      verifyIndex(index, LABEL_MUST_SUPPORT, 9)
+    } catch (Exception e) {
+      error(e.toString())
+      return
+    }
+
+    profileCount++
+    processProfile(mapping, worksheet, index)
+  }
+
+  /**
+   * Opens profile based on file location and populates fields in profile.
+   * @param file  File path to profile
+   * @param profile  Profile instance
+   * @return Worksheet associated with Profile
+   */
+  Worksheet getProfileWorksheet(File file, Profile profile) {
     xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
 
     // 1. start with Metadata worksheet
@@ -316,25 +352,7 @@ class FhirProfileScanner {
       return
     }
 
-    //int eltIdx = 4, cardIdx = 6, typeIdx = 7, mustIdx = 8
-    Map<String, Integer> index = getWorkSheetIndex(worksheet)
-    try {
-      checkIndex(index)
-      // column index: {Profile Name=1, Discriminator=2, Slice Description=3, Element=4, Aliases=5, Card.=6, Inv.=7, Type=8, ...
-      // template worksheet has 24 columns in Structure work??
-      // following 4 columns are required, others are optional
-      // getIndex() throws IllegalArgumentException if column label not found
-      verifyIndex(index, LABEL_ELEMENT, 4)
-      verifyIndex(index, LABEL_CARD, 6)
-      verifyIndex(index, LABEL_TYPE, 8)
-      verifyIndex(index, LABEL_MUST_SUPPORT, 9)
-    } catch (Exception e) {
-      error(e.toString())
-      return
-    }
-
-    profileCount++
-    processProfile(mapping, worksheet, index)
+    return worksheet
   }
 
   static Map<String, Integer> getWorkSheetIndex(Worksheet worksheet) {
