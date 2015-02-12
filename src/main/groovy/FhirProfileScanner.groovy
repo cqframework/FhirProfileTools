@@ -139,7 +139,7 @@ class FhirProfileScanner {
     //println "\t" + mapping // debug
     // out.println "elements: " + mapping.keySet() + "<P>"
 
-    profileGroupStart(profiles)
+    profileGroupStart(xlWorkbook, mapping, profiles)
     // now scan each profile against the base resource
     profiles.each {
       // println "\n\tprofile: " + it
@@ -183,6 +183,8 @@ class FhirProfileScanner {
       defIdx = getIndex(index, LABEL_DEFINITION)
     } catch (IllegalArgumentException e) {
       error(e.toString())
+      println "X:" + index.keySet()
+      e.printStackTrace(System.out)//debug
       return null
     }
 
@@ -437,16 +439,19 @@ class FhirProfileScanner {
 
   static int getIndex(Map<String, Integer> index, String key) {
     Integer val = index.get(key)
-    if (val == null) throw new IllegalArgumentException("Column $key not found")
+    if (val == null) throw new IllegalArgumentException("Column '$key' not found")
     return val
   }
 
   /**
    * Called when scanner starts a new resource and is about to process
    * each associate profile.
-   * @param profiles
+   *
+   * @param workbook  Workbook for the resource
+   * @param mapping   Mapping of resource elements by name
+   * @param profiles  List of associated profiles for that resource
    */
-  void profileGroupStart(List<Profile> profiles) {
+  void profileGroupStart(Workbook workbook, Map<String, Details> mapping, List<Profile> profiles) {
     // implement in subclasses
   }
 
