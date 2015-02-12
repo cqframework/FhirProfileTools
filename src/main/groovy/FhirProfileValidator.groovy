@@ -226,6 +226,9 @@ class FhirProfileValidator extends FhirProfileScanner {
       }
 
       String type = worksheet.getCellAt(i, typeIdx).getData$()?.trim() ?: ''
+      // NOTE: type value in profile spreadsheet starting with '!' prefix annotates a type for comment only
+      // and defers to the type in base resource. Treated same as having an empty/blank value.
+      if (type.startsWith('!')) type = ''
       // println "flags: " + flags.join(', ')
       if (details == null) {
         // no base definition
