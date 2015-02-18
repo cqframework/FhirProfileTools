@@ -109,8 +109,10 @@ class FhirProfileScanner {
           continue
         }
         // println "\tprofile name: $name"
-        if (name.startsWith("!")) // check profile name
-          println "WARN: profile disabled: $name"
+        if (name.startsWith("!")) {
+          println "INFO: skip disabled profile: $name"
+          continue
+        }
         // String id = row.getCellAt(10).getData().toString()
         // cqfOut.printf("<li><a href='http://hl7-fhir.github.io/%s-%s.html'>%s</a>", id, id, id)
         profiles.add(new Profile(name, val.trim()))
@@ -275,7 +277,10 @@ class FhirProfileScanner {
    * @param file  File path to profile
    */
   void checkProfile(Map<String, Details> mapping, File file) {
-
+    if (!file.exists()) {
+      println "ERROR: file not found: " + file.getName()
+      return
+    }
     Worksheet worksheet = getProfileWorksheet(file, profile)
     if (worksheet == null) return
 
