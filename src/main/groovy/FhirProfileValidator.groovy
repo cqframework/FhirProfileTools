@@ -303,13 +303,19 @@ class FhirProfileValidator extends FhirProfileScanner {
             if (baseCard == '0..1' && (cardinality == '1..1' || cardinality == '0..0')) {
               // making optional element required is not an error or warning (i.e., 0..1 => 1..1 is allowed)
               // and ruling out an optional element by setting max card = 0 is also allowed (i.e., 0..1 => 0..0)
+              // Source: http://fhirblog.com/2014/03/26/fhir-profiles-an-overview/
               classType = 'info'
-            } else if (baseCard == '1..1' && (cardinality == '0..1' || cardinality == '1..*')) {
+            } else if (baseCard == '1..1' && cardinality == '1..*') {
               // 2.11.0.3 Limitations of Use
               // Profiles cannot break the rules established in the base specification (e.g. if the element
               // cardinality is 1..1 in the base specification, a profile cannot say it is 0..1, or 1..*).
               // Source: https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html#2.11.0.3
               classType = 'error'
+            } else if (baseCard.startsWith('1..') && cardinality.startsWith('0..')) {
+              classType = 'error'
+              // if element is required then cannot make it optional.
+              // Source: http://fhirblog.com/2014/03/26/fhir-profiles-an-overview/
+              // Source: https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html#2.11.0.3
             }
             try {
               def card = new Cardinality(cardinality)
