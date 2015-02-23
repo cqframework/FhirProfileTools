@@ -109,10 +109,8 @@ class FhirProfileScanner {
           continue
         }
         // println "\tprofile name: $name"
-        if (name.startsWith("!")) {
-          println "INFO: skip disabled profile: $name"
-          continue
-        }
+        if (name.startsWith("!")) // check profile name
+          warn("profile disabled: $name")
         // String id = row.getCellAt(10).getData().toString()
         // cqfOut.printf("<li><a href='http://hl7-fhir.github.io/%s-%s.html'>%s</a>", id, id, id)
         profiles.add(new Profile(name, val.trim()))
@@ -277,10 +275,8 @@ class FhirProfileScanner {
    * @param file  File path to profile
    */
   void checkProfile(Map<String, Details> mapping, File file) {
-    if (!file.exists()) {
-      println "ERROR: file not found: " + file.getName()
-      return
-    }
+
+    if (!file.exists()) return
     Worksheet worksheet = getProfileWorksheet(file, profile)
     if (worksheet == null) return
 
@@ -323,6 +319,11 @@ class FhirProfileScanner {
 
     String worksheetName = null
     // skip over header row
+    /*
+    template Metadata worksheet row labels are following in this order:
+    id, name, author.name, author.reference, code, description, status, date, published.structure, version, extension.uri, introduction, notes
+    see source/templates/template-profile-spreadsheet.xml
+    */
     for (int i = 2; i < 14; i++) {
       // find rows with id and published.structure labels in first column
       Cell cell = worksheet.getCellAt(i, 1)
@@ -332,7 +333,10 @@ class FhirProfileScanner {
         //out.println id
       } else if ('published.structure' == data) {
         worksheetName = worksheet.getCellAt(i, 2).getData$()
-        break
+        // break
+      } else if ('extension.uri' == data) {
+        profile.extensionUri = worksheet.getCellAt(i, 2).getData$()
+        if (worksheetName) break // if have worksheetName then we're done parsing rows
       } else if ('description' == data) {
         profile.description = worksheet.getCellAt(i, 2).getData$().trim()
         //elements must be supported by CQF rules and measure engines
@@ -497,6 +501,8 @@ class FhirProfileScanner {
      * which should be same as the name defined in the base resource profile.
      */
     String id
+
+    String extensionUri
 
     /**
      * published.structure as defined in resource profile spreadsheet Metadata worksheet.
