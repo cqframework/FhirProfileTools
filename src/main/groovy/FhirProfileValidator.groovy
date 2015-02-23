@@ -186,8 +186,12 @@ class FhirProfileValidator extends FhirProfileScanner {
       rows++
       elements.add(eltName)
 
-      final String cardinality = worksheet.getCellAt(i, cardIdx).getData$() ?: ''
-	  String val = worksheet.getCellAt(i, mustIdx).getData$() // Y, y, Yes, N, No, or empty
+      String val = worksheet.getCellAt(i, cardIdx).getData$() ?: ''
+      // issue tracker #4041 discusses change to publishing tools for spreadsheets allowing "!" prefix
+      // in type and cardinality to annotate the type/cardinality but treat as blank to use base resource value.
+      // See http://gforge.hl7.org/gf/project/fhir/tracker/?action=TrackerItemEdit&tracker_item_id=4041
+      final String cardinality = val.startsWith('!') ? '' : val
+      val = worksheet.getCellAt(i, mustIdx).getData$() // Y, y, Yes, N, No, or empty
       final boolean mustSupport = isYesValue(val)
 
       // Conformance: 2.11.0.11 Must Support
@@ -228,6 +232,7 @@ class FhirProfileValidator extends FhirProfileScanner {
       String type = worksheet.getCellAt(i, typeIdx).getData$()?.trim() ?: ''
       // NOTE: type value in profile spreadsheet starting with '!' prefix annotates a type for comment only
       // and defers to the type in base resource. Treated same as having an empty/blank value.
+      // See http://gforge.hl7.org/gf/project/fhir/tracker/?action=TrackerItemEdit&tracker_item_id=4041
       if (type.startsWith('!')) type = ''
       // println "flags: " + flags.join(', ')
       if (details == null) {
@@ -313,9 +318,13 @@ class FhirProfileValidator extends FhirProfileScanner {
               classType = 'error'
             } else if (baseCard.startsWith('1..') && cardinality.startsWith('0..')) {
               classType = 'error'
-              // if element is required then cannot make it optional.
+              // if element is required (i.e., min=1) then cannot make it optional.
               // Source: http://fhirblog.com/2014/03/26/fhir-profiles-an-overview/
               // Source: https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html#2.11.0.3
+            } else if (baseCard.endsWith('..1') && cardinality.endsWith('..*')) {
+              classType = 'error'
+              // if max=1 is specified in base then can't it make it many.
+              // Source: http://fhirblog.com/2014/03/26/fhir-profiles-an-overview/
             }
             try {
               def card = new Cardinality(cardinality)
@@ -350,6 +359,7 @@ class FhirProfileValidator extends FhirProfileScanner {
             if(classType == 'error') errors++
             out.printf('<tr><td>%s<td>%s<td class="%s">%s<br>%s', eltName, flags.join(', '), classType, baseCard, cardPrint)
           } else {
+            // otherwise cardinality not specified in profile
             out.printf('<tr><td>%s<td>%s<td class="error">%s', eltName, flags.join(', '), baseCard)
           }
         }
