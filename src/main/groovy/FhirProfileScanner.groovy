@@ -139,6 +139,9 @@ class FhirProfileScanner {
     //println "\t" + mapping // debug
     // out.println "elements: " + mapping.keySet() + "<P>"
 
+    // some profile spreadsheets define multiple profiles
+    expandProfiles(dir, profiles)
+
     profileGroupStart(xlWorkbook, mapping, profiles)
     // now scan each profile against the base resource
     profiles.each {
@@ -147,8 +150,42 @@ class FhirProfileScanner {
       checkProfile(mapping, new File(dir, it.sourceFile))
     }
     profileGroupEnd(profiles)
-  }  // checkDirectory
+  } // checkDirectory
 
+  void expandProfiles(File dir, List<Profile> profiles) {
+    List<Profile> profileList = new ArrayList<>()
+    profiles.each { profile ->
+      def file = new File(dir, profile.sourceFile)
+      if (!file.exists()) return
+      xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
+      Worksheet worksheet = xlWorkbook.getWorksheet('Metadata')
+      if (worksheet == null) return
+      String worksheetName = null
+      for (int i = 2; i < 14; i++) {
+        // find rows with id and published.structure labels in first column
+        Cell cell = worksheet.getCellAt(i, 1)
+        String data = cell.getData$()
+        if ('published.structure' == data) {
+          // spreadsheets can have multiple published.structure rows; e.g., obs-uslab-profile-spreadsheet.xml
+          // and observation-daf-results-profile-spreadsheet.xml, etc.
+          if (!worksheetName) {
+            // first structure defined
+            worksheetName = worksheet.getCellAt(i, 2).getData$()
+            //profile.id = worksheetName
+            profile.worksheetName = worksheetName
+          } else {
+            worksheetName = worksheet.getCellAt(i, 2).getData$()
+            //println "X: new profile: $worksheetName"
+            Profile p = new Profile(worksheetName, profile.sourceFile)
+            p.worksheetName = worksheetName
+            profileList.add(p)
+          }
+        }
+      }
+    }
+    // add expanded profiles to list
+    if (profileList) profiles.addAll(profileList)
+  }
 
   protected void processEmptyProfileList(Workbook xlWorkbook) {
     // implement in subclasses
@@ -317,7 +354,7 @@ class FhirProfileScanner {
       return
     }
 
-    String worksheetName = null
+    String worksheetName = profile.worksheetName
     // skip over header row
     /*
     template Metadata worksheet row labels are following in this order:
@@ -332,8 +369,11 @@ class FhirProfileScanner {
         profile.id = worksheet.getCellAt(i, 2).getData$() // Metadata column 2 = profile id
         //out.println id
       } else if ('published.structure' == data) {
-        worksheetName = worksheet.getCellAt(i, 2).getData$()
-        // break
+        // TODO: spreadsheets can have multiple published.structure rows; e.g., obs-uslab-profile-spreadsheet.xml
+        // and observation-daf-results-profile-spreadsheet.xml, etc.
+        if (!worksheetName) {
+          worksheetName = worksheet.getCellAt(i, 2).getData$()
+        }
       } else if ('extension.uri' == data) {
         profile.extensionUri = worksheet.getCellAt(i, 2).getData$()
         if (worksheetName) break // if have worksheetName then we're done parsing rows
