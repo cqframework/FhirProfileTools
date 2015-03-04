@@ -448,6 +448,10 @@ class FhirProfileValidator extends FhirProfileScanner {
       warnings.each{ warn(it) }
     }
 
+
+    /*
+    // this is not really a warning epecially if target profile only
+    // adds one or two extensions so skip it.
     if (rows != mapping.size()) {
       Set<String> set = new TreeSet<>()
       mapping.each { String name, Details value ->
@@ -468,6 +472,8 @@ class FhirProfileValidator extends FhirProfileScanner {
         warn(sb.toString())
       }
     }
+    */
+
     // println "\t" + worksheetName
     //Row row = worksheet.getRowAt(2)
     //println row.getCellAt(3)
@@ -594,7 +600,7 @@ class FhirProfileValidator extends FhirProfileScanner {
   @TypeChecked
   void checkIndex(Map<String, Integer> index) {
     // FHIR template worksheet has 24 columns in Structure worksheet
-    println "profile: " + profile.id
+    printf "profile: %s [%s]%n", profile.id, profile.worksheetName
     if (!defaultIdx.equals(index) && !defaultIdx2.equals(index)) {
       def keys = index.keySet()
       if(defaultIdx.keySet().equals(keys) || defaultIdx2.keySet().equals(keys)) {
@@ -706,7 +712,7 @@ class FhirProfileValidator extends FhirProfileScanner {
   }
 
   void warn(String msg) {
-    if (ignoreWarnings.isEmpty() || !ignoreWarnings.contains(profile.name + ":" + msg)) {
+    if (ignoreWarnings.isEmpty() || profile == null || !ignoreWarnings.contains(profile.name + ":" + msg)) {
       printHeader()
       logMsg('WARN', 'ffff00', msg)
       warnCount++
