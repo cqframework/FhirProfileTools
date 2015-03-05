@@ -359,8 +359,8 @@ class FhirProfileValidator extends FhirProfileScanner {
             if(classType == 'error') errors++
             out.printf('<tr><td>%s<td>%s<td class="%s">%s<br>%s', eltName, flags.join(', '), classType, baseCard, cardPrint)
           } else {
-            // otherwise cardinality not specified in profile
-            out.printf('<tr><td>%s<td>%s<td class="error">%s', eltName, flags.join(', '), baseCard)
+            // otherwise cardinality not specified in profile -- use base resource definition by default
+            out.printf('<tr><td>%s<td>%s<td>%s', eltName, flags.join(', '), baseCard)
           }
         }
 
