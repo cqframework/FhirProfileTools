@@ -16,6 +16,7 @@ import nl.fountain.xelem.excel.Workbook
 import nl.fountain.xelem.excel.Worksheet
 import nl.fountain.xelem.lex.ExcelReader
 import org.apache.commons.lang.StringUtils
+import org.xml.sax.SAXException
 
 import java.util.regex.Pattern
 
@@ -157,7 +158,13 @@ class FhirProfileScanner {
     profiles.each { profile ->
       def file = new File(dir, profile.sourceFile)
       if (!file.exists()) return
-      xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
+      try {
+        xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
+      } catch(SAXException e) {
+        println "WARN: parse exception in " + file.getName()
+        // remember return in closure is same as continue in for-loop
+        return
+      }
       Worksheet worksheet = xlWorkbook.getWorksheet('Metadata')
       if (worksheet == null) return
       String worksheetName = null
@@ -345,7 +352,12 @@ class FhirProfileScanner {
    * @return Worksheet associated with Profile
    */
   Worksheet getProfileWorksheet(File file, Profile profile) {
-    xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
+    try {
+      xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
+    } catch(SAXException e) {
+      println "WARN: parse exception in " + file.getName()
+      return null
+    }
 
     // 1. start with Metadata worksheet
     Worksheet worksheet = xlWorkbook.getWorksheet('Metadata')
