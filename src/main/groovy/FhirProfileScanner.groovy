@@ -82,7 +82,7 @@ class FhirProfileScanner {
     }
 
     Workbook xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
-    Worksheet worksheet = xlWorkbook.getWorksheet('Packages')
+    Worksheet worksheet = xlWorkbook.getWorksheet('Profiles')
     if (worksheet == null) return // no profiles
 
     //Row row = worksheet.getRowAt(1)
