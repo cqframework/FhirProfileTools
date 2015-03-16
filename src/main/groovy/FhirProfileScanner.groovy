@@ -35,6 +35,7 @@ class FhirProfileScanner {
   //  Profile Name, Discriminator=2, Slice Description, Element, Aliases, Card., Inv., Type,
   //  Must Support, Binding, Value, Pattern, Example, Max Length, Short Label, Definition,
   //  Requirements, Comments, To Do, RIM Mapping, v2 Mapping, Display Hint, Committee Notes
+  public static final String LABEL_PROFILE_NAME = 'Profile Name'
   public static final String LABEL_ELEMENT = 'Element'
   public static final String LABEL_CARD = 'Card.'
   public static final String LABEL_TYPE = 'Type'
@@ -256,7 +257,7 @@ class FhirProfileScanner {
       }
       String name = val
       String card = worksheet.getCellAt(i, cardIdx).getData$() // Cardinality
-      String shortLabel = worksheet.getCellAt(i, shortLabelIdx).getData$()
+      String shortLabel = worksheet.getCellAt(i, shortLabelIdx).getData$().trim()
       String type = worksheet.getCellAt(i, typeIdx).getData$().trim() // Type
       String binding = worksheet.getCellAt(i, bindIdx).getData$().trim() // Binding
       String description = worksheet.getCellAt(i, defIdx).getData$().trim() // Definition
