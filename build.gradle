@@ -24,6 +24,6 @@ dependencies {
  compile group: 'commons-io', name: 'commons-io', version: '1.4'
  compile group: 'commons-lang', name: 'commons-lang', version: '2.5'
  compile 'org.codehaus.groovy:groovy-all:2.3.6'
- compile fileTree(dir: 'lib', include: 'xelem-3.1.jar')
+ compile files('lib/xelem-3.1.1.jar') 
  testCompile group: 'junit', name: 'junit', version: '4.11'
 }
