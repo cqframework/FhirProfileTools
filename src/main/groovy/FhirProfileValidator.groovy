@@ -43,6 +43,7 @@ class FhirProfileValidator extends FhirProfileScanner {
   PrintWriter out
   int errCount, warnCount
   final Map<String, Integer> defaultIdx, defaultIdx2
+  final List<String> infoList = new ArrayList<>()
 
   FhirProfileValidator(Pattern profilePattern, File ruleFile) {
     super(profilePattern)
@@ -87,6 +88,11 @@ class FhirProfileValidator extends FhirProfileScanner {
     }
   }
 
+  void info(String msg) {
+    println "INFO: $msg resource=$resourceName"
+    infoList.add(msg)
+  }
+
   /**
    * Process resource profile worksheet
    *
@@ -112,6 +118,7 @@ class FhirProfileValidator extends FhirProfileScanner {
     Integer shortIdx = index.get(LABEL_SHORT_LABEL) // optional
     Integer bindIdx = index.get(LABEL_BINDING) // optional
     Integer valueIdx = index.get(LABEL_VALUE) // optional
+    Integer nameIdx = index.get(LABEL_PROFILE_NAME) // optional
     List<String> warnings = new ArrayList<>()
     Set<String> elements = new HashSet<>()
     // iterate rows of structure worksheet in profile
@@ -119,11 +126,16 @@ class FhirProfileValidator extends FhirProfileScanner {
     main: for (int i=3; i < 50; i++) {
       // if (!worksheet.hasRowAt(i)) println "no row at $i"
       Cell cell1 = worksheet.getCellAt(i, eltIdx)
-      String rawEltName = cell1.getData$()
+      final String rawEltName = cell1.getData$()
       if ('' == rawEltName) break // element name should not be blank: this means reached the end so stop processing
       String eltName = rawEltName
-      if (eltName.endsWith('.extension')) continue // ignore extensions
-      if (eltName.startsWith('!')) {
+      if (eltName.endsWith('.extension')) {
+        if (eltName.startsWith('!')) continue // ignore skipped extensions
+        if (!nameIdx) continue // ignore extensions without names
+        def name = worksheet.getCellAt(i, nameIdx).getData$()
+        if (!name) continue // ignore extensions without names
+        eltName = name
+      } else if (eltName.startsWith('!')) {
         eltName = eltName.substring(1) // strip ignore marker
         if (mapping.containsKey(eltName) || mapping.containsKey(rawEltName)) {
           // profile is ignoring an element that is present in base resource which is allowed
@@ -155,11 +167,24 @@ class FhirProfileValidator extends FhirProfileScanner {
         }
         */
       } //else if (eltName.endsWith('.identifier')) warn "identifier not masked: $eltName"
+
+      String nameClass = ''
       Details details = mapping.get(eltName)
       // NOTE: special [x] variable typed elements are auto-expanded to mapping table.
       // e.g. Condition.onset[x] : dateTime | Age 0.. => Condition.onsetAge, Condition.onsetDateTime, etc.
       // Profiles can specify the expanded names (e.g. Condition.onsetAge) in differential view.
-      if (details == null && !rawEltName.startsWith('!')) {
+      if (rawEltName.endsWith('.extension')) {
+        // use generic extension details based on structuredefinition.profile.xml definition
+        if (details != null) {
+          nameClass = ' class="warn"'
+          warnings.add("conflict with extension name and element path: " + eltName)
+        }
+        details = new Details('0..*', 'Extension', '', '', false)
+      } else if (details == null && !rawEltName.startsWith('!')) {
+        if (rawEltName.contains('.extension.')) {
+          // constrain extension sub-component; e.g. Encounter.extension.valueReference or Patient.extension.uri
+          continue
+        }
         details = mapping.get("!" + eltName)
         if (details != null) {
           // found element name in base resource
@@ -213,7 +238,7 @@ class FhirProfileValidator extends FhirProfileScanner {
             val = worksheet.getCellAt(i, shortIdx).getData$().trim()
             if (val.isEmpty() /*&& details?.parent == null*/) {
               // REVIEW: if element is expanded [x] type (e.g. valueString, etc.) then ignore short value warning
-              warnings.add("element has binding and should specify a short value: " + eltName)
+              infoList.add('element has binding and may specify a short value: ' + eltName)
             }
           }
         }
@@ -237,6 +262,12 @@ class FhirProfileValidator extends FhirProfileScanner {
       // println "flags: " + flags.join(', ')
       if (details == null) {
         // no base definition
+        /*
+        if (rawEltName.startsWith('!') && rawEltName.endsWith('.extension')) {
+          println "ERR: ignore ext: $rawEltName [$eltName]"
+          continue
+        }
+        */
         if (count++ == 0) {
           printHeader()
           out.println(TABLE_DEF)
@@ -244,6 +275,7 @@ class FhirProfileValidator extends FhirProfileScanner {
         errors++
         //println eltName + " NF"
         //out.printf('<tr><td>%s<td>NF', eltName)
+        // if (rawEltName.endsWith('.extension')) println "ERR: ext: no details $rawEltName [$eltName] " + (details == null)
         String typeDef = type
         if (type.length() > 33) {
           typeDef = String.format('''<span class="dropt">%s
@@ -294,8 +326,8 @@ class FhirProfileValidator extends FhirProfileScanner {
             if (cardLow != baseCard.substring(0, ind))
               cardPrint = '<B class="big">' + cardLow + '</B>' + cardinality.substring(ind)
             else cardPrint = String.valueOf(cardLow) + '..<B class="big">' + cardinality.substring(ind+2) + '</B>'
-            out.printf('<tr><td>%s<td>%s<td class="overrideCard">%s<br><span title="expected cardinality">%s (*)</span>',
-                    eltName, flags.join(', '), baseCard, cardPrint)
+            out.printf('<tr><td%s>%s<td>%s<td class="overrideCard">%s<br><span title="expected cardinality">%s (*)</span>',
+                    nameClass, eltName, flags.join(', '), baseCard, cardPrint)
           }
           // otherwise expected cardinality is invalid - handle in next stage of validation
         }
@@ -356,11 +388,11 @@ class FhirProfileValidator extends FhirProfileScanner {
               classType = 'error'
               println "X: bad card: $cardinality: $e"
             }
-            if(classType == 'error') errors++
-            out.printf('<tr><td>%s<td>%s<td class="%s">%s<br>%s', eltName, flags.join(', '), classType, baseCard, cardPrint)
+            if (classType == 'error') errors++
+            out.printf('<tr><td%s>%s<td>%s<td class="%s">%s<br>%s', nameClass, eltName, flags.join(', '), classType, baseCard, cardPrint)
           } else {
             // otherwise cardinality not specified in profile -- use base resource definition by default
-            out.printf('<tr><td>%s<td>%s<td>%s', eltName, flags.join(', '), baseCard)
+            out.printf('<tr><td%s>%s<td>%s<td>%s', nameClass, eltName, flags.join(', '), baseCard)
           }
         }
 
@@ -428,26 +460,31 @@ class FhirProfileValidator extends FhirProfileScanner {
         if (truncated) {
           String origTypeDetail = origType
           if (classType == 'empty') origTypeDetail += '<BR>Type is unspecified in profile defaulting to base type.'
-          out.printf('''<tr><td>%s<td>%s<td>%s<td class="%s">
-<span class="dropt">%s
-<span style="width:500px;">%s<BR>%s</span>
-</span>%n''', eltName, flags.join(', '), cardinality,
+          out.printf('''<tr><td%s>%s<td>%s<td>%s<td class="%s">
+<span class="dropt">%s<span style="width:500px;">%s<BR>%s</span></span>%n''',
+              nameClass, eltName, flags.join(', '), cardinality,
               classType, typeDetail, origBaseType, origTypeDetail)
         } else {
           if(classType == 'empty') typeDetail = "<span title='type unspecified in profile'>$baseType</span>"
           //typeDetail += "/class=" + classType //debug
-          out.printf('<tr><td>%s<td>%s<td>%s<td class="%s">%s%n',
-            eltName, flags.join(', '), cardinality, classType, typeDetail)
+          out.printf('<tr><td%s>%s<td>%s<td>%s<td class="%s">%s%n',
+            nameClass, eltName, flags.join(', '), cardinality, classType, typeDetail)
         }
       } // type diff
-    } // for each element
+    } // for each element (main)
 
     if (count != 0) out.println('</table>')
 
     if(warnings) {
       warnings.each{ warn(it) }
     }
-
+    if (!infoList.isEmpty()) {
+      println "XX: dump INFO"
+      infoList.each {
+        printHeader()
+        logMsg('INFO', '', it)
+      }
+    }
 
     /*
     // this is not really a warning epecially if target profile only
@@ -479,7 +516,7 @@ class FhirProfileValidator extends FhirProfileScanner {
     //println row.getCellAt(3)
     //println "\tok"
     if (errors == 0) {
-      if (count == 0) {
+      if (count == 0 && infoList.isEmpty()) {
         if (skipGoodProfiles) {
           if (resourceName && resourceName != lastResource) {
             println()
@@ -492,7 +529,7 @@ class FhirProfileValidator extends FhirProfileScanner {
         printHeader()
       }
       println '\tno differences: OK'
-      if (count != 0) out.println '<br>'
+      if (count != 0 || !infoList.isEmpty()) out.println '<br>'
       out.println('<div style="width:180px; background-color: #00ff00"><B>no differences: OK</b></div>')
     } else {
       errCount += errors
@@ -533,7 +570,16 @@ class FhirProfileValidator extends FhirProfileScanner {
       type.split('\\|').each{ String s ->
         profTypes.add(getBaseType(s))
       }
-      return baseTypes.equals(profTypes)
+      boolean val = baseTypes.equals(profTypes)
+      if (!val) {
+        int size = profTypes.size()
+        profTypes.removeAll(baseTypes)
+        if (profTypes.isEmpty())
+          printf "\tERROR: type list mismatch: size base=%d size profile=%s: %s%n", baseTypes.size(), size, eltName
+        else
+          println "\tERROR: list mismatch in $eltName: types in profile not in base: $profTypes"
+      }
+      return val
     } else if (baseType.contains('(') || type.contains('{')) {
       if (baseType.startsWith('Reference(') && !type.startsWith('Reference(')) {
         //warnings.add("$eltName: type does not have Reference() prefix: base type=$baseType profile type=$type".toString())
@@ -600,7 +646,8 @@ class FhirProfileValidator extends FhirProfileScanner {
   @TypeChecked
   void checkIndex(Map<String, Integer> index) {
     // FHIR template worksheet has 24 columns in Structure worksheet
-    printf "profile: %s [%s]%n", profile.id, profile.worksheetName
+    printf "%nprofile: %s [%s]%n", profile.id, profile.worksheetName
+    infoList.clear() // reset info messages
     if (!defaultIdx.equals(index) && !defaultIdx2.equals(index)) {
       def keys = index.keySet()
       if(defaultIdx.keySet().equals(keys) || defaultIdx2.keySet().equals(keys)) {
@@ -613,7 +660,7 @@ class FhirProfileValidator extends FhirProfileScanner {
         defaultIdx2.keySet().each{ String key ->
           if (index.get(key) != null) difference.remove(key)
         }
-        warn("different column labels: $difference")
+        info("different column labels: $difference")
       }
     } else println "\tindex: column labels okay"
   }
@@ -706,7 +753,9 @@ class FhirProfileValidator extends FhirProfileScanner {
     if (profile && profile != lastProfile) {
       String name = (profile.id ?: profile.name)
       // println "profile: $name"
-      out.println("<h3>profile: " + name + "</h3>")
+      //out.println("<h3>profile: " + name + "</h3>")
+      out.printf('<h3>profile: %s&nbsp;<a href="%s%s-%s.html"><img src="images/external_link_icon.gif"></a></h3>',
+              name, baseUrl, profile.id, profile.worksheetName.toLowerCase())
       lastProfile = profile
     }
   }
@@ -726,7 +775,10 @@ class FhirProfileValidator extends FhirProfileScanner {
   }
 
   void logMsg(String level, String color, String msg) {
-    out.printf('<br><div style="width:400px; background-color: #%s"><B>%s: %s</b></div>%n', color, level, msg)
+    if (color)
+      out.printf('<br><div style="width:400px; background-color: #%s"><B>%s: %s</b></div>%n', color, level, msg)
+    else
+      out.printf('<br><div style="width:400px"><B>%s: %s</b></div>%n', level, msg)
   }
 
   static class Cardinality {
