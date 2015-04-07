@@ -371,25 +371,34 @@ class FhirProfileValidator extends FhirProfileScanner {
                 }
               }
               // following just to highlight the parts of the cardinality in BOLD that differ from the base cardinality
-              try {
-                def base = new Cardinality(baseCard)
-                if (card.min != base.min)
-                  cardPrint = String.format('<B class="big">%d</B>..', card.min)
-                else
-                  cardPrint = String.format('%d..', card.min)
-                if (card.maxVal != base.maxVal)
-                  cardPrint += String.format('<B class="big">%s</B>', card.maxVal)
-                else
-                  cardPrint += card.maxVal
-              } catch (IllegalArgumentException e) {
-                // failed to parse base cardinality
+              // skip highlighting for extensions since extension itself defines what is expected
+              if (!type.startsWith('Extension')) {
+                try {
+                  def base = new Cardinality(baseCard)
+                  if (card.min != base.min)
+                    cardPrint = String.format('<B class="big">%d</B>..', card.min)
+                  else
+                    cardPrint = String.format('%d..', card.min)
+                  if (card.maxVal != base.maxVal)
+                    cardPrint += String.format('<B class="big">%s</B>', card.maxVal)
+                  else
+                    cardPrint += card.maxVal
+                } catch (IllegalArgumentException e) {
+                  // failed to parse base cardinality
+                  cardPrint = cardinality
+                }
               }
             } catch (IllegalArgumentException e) {
               classType = 'error'
               println "X: bad card: $cardinality: $e"
             }
             if (classType == 'error') errors++
-            out.printf('<tr><td%s>%s<td>%s<td class="%s">%s<br>%s', nameClass, eltName, flags.join(', '), classType, baseCard, cardPrint)
+            if (baseCard == '0..*' && type.startsWith('Extension') && classType == 'info') {
+              // Extension card is by default 0..* so no need to show base card if card is specified for given extension
+              // e.g. type = Extension{#cause#item} or Extension{http://hl7.org/fhir/StructureDefinition/communication-reasonNotPerformed
+              out.printf('<tr><td%s>%s<td>%s<td>%s', nameClass, eltName, flags.join(', '), cardPrint)
+            } else
+              out.printf('<tr><td%s>%s<td>%s<td class="%s">%s<br>%s', nameClass, eltName, flags.join(', '), classType, baseCard, cardPrint)
           } else {
             // otherwise cardinality not specified in profile -- use base resource definition by default
             out.printf('<tr><td%s>%s<td>%s<td>%s', nameClass, eltName, flags.join(', '), baseCard)
