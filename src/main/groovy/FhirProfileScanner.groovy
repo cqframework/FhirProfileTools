@@ -169,7 +169,7 @@ class FhirProfileScanner {
       Worksheet worksheet = xlWorkbook.getWorksheet('Metadata')
       if (worksheet == null) return
       String worksheetName = null
-      for (int i = 2; i < 14; i++) {
+      for (int i = 2; i < 25; i++) {
         // find rows with id and published.structure labels in first column
         Cell cell = worksheet.getCellAt(i, 1)
         String data = cell.getData$()
@@ -186,8 +186,11 @@ class FhirProfileScanner {
             //println "X: new profile: $worksheetName"
             Profile p = new Profile(worksheetName, profile.sourceFile)
             p.worksheetName = worksheetName
+            p.extensionUri = profile.extensionUri
             profileList.add(p)
           }
+        } else if ('extension.uri' == data) {
+          if (worksheetName) break // if have worksheetName then we're done parsing rows at this point
         }
       }
     }
@@ -364,17 +367,20 @@ class FhirProfileScanner {
     Worksheet worksheet = xlWorkbook.getWorksheet('Metadata')
     if (worksheet == null) {
       error('Metadata not found')
-      return
+      return null
     }
 
     String worksheetName = profile.worksheetName
-    // skip over header row
     /*
+    skip over header row
+
     template Metadata worksheet row labels are following in this order:
     id, name, author.name, author.reference, code, description, status, date, published.structure, version, extension.uri, introduction, notes
     see source/templates/template-profile-spreadsheet.xml
+
+    have as many as 17 rows with multiple structures in worksheets in some profiles; e.g. list-daf-profile-spreadsheet.xml
     */
-    for (int i = 2; i < 14; i++) {
+    for (int i = 2; i < 25; i++) {
       // find rows with id and published.structure labels in first column
       Cell cell = worksheet.getCellAt(i, 1)
       String data = cell.getData$()
@@ -382,14 +388,14 @@ class FhirProfileScanner {
         profile.id = worksheet.getCellAt(i, 2).getData$() // Metadata column 2 = profile id
         //out.println id
       } else if ('published.structure' == data) {
-        // TODO: spreadsheets can have multiple published.structure rows; e.g., obs-uslab-profile-spreadsheet.xml
+        // spreadsheets can have multiple published.structure rows; e.g., obs-uslab-profile-spreadsheet.xml
         // and observation-daf-results-profile-spreadsheet.xml, etc.
         if (!worksheetName) {
           worksheetName = worksheet.getCellAt(i, 2).getData$()
         }
       } else if ('extension.uri' == data) {
         profile.extensionUri = worksheet.getCellAt(i, 2).getData$()
-        if (worksheetName) break // if have worksheetName then we're done parsing rows
+        if (worksheetName) break // if have worksheetName then we're done parsing rows at this point
       } else if ('description' == data) {
         profile.description = worksheet.getCellAt(i, 2).getData$().trim()
         //elements must be supported by CQF rules and measure engines
@@ -399,21 +405,21 @@ class FhirProfileScanner {
 
     if (!worksheetName) {
       error("missing published.structure")
-      return
+      return null
     }
 
     profile.worksheetName = worksheetName
 
     if (!profile.id) {
       error("missing id")
-      return
+      return null
     }
 
     // 2. use structure worksheet in profile
     worksheet = xlWorkbook.getWorksheet(worksheetName)
     if (worksheet == null) {
       error(worksheetName + " worksheet not found")
-      return
+      return null
     }
 
     return worksheet
@@ -470,7 +476,7 @@ class FhirProfileScanner {
   void printHeader() {
     printResource()
     if (profile && profile != lastProfile) {
-      println profile.id
+      println profile.id + " " + profile.sourceFile
       lastProfile = profile
     }
   }
