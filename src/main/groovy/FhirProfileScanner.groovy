@@ -182,17 +182,21 @@ class FhirProfileScanner {
             //profile.id = worksheetName
             profile.worksheetName = worksheetName
           } else {
+            profile.multiWorksheets = true // mark first one as being part of multi-structure collection
             worksheetName = worksheet.getCellAt(i, 2).getData$()
             //println "X: new profile: $worksheetName"
             Profile p = new Profile(worksheetName, profile.sourceFile)
             p.worksheetName = worksheetName
+            p.multiWorksheets = true
             profileList.add(p)
           }
         }
       }
     }
     // add expanded profiles to list
-    if (profileList) profiles.addAll(profileList)
+    if (profileList) {
+      profiles.addAll(profileList)
+    }
   }
 
   protected void processEmptyProfileList(Workbook xlWorkbook) {
@@ -572,6 +576,12 @@ class FhirProfileScanner {
      * description as defined in resource profile spreadsheet Metadata worksheet
      */
     String description
+
+    /**
+     * True if profile is part of multi-structure collection in which the parent spreadsheet
+     * has multiple structure worksheets from which it creates set of profiles.
+     */
+    boolean multiWorksheets
 
     Profile(String name, String sourceFile) {
       this.name = name

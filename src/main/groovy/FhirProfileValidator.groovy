@@ -137,6 +137,7 @@ class FhirProfileValidator extends FhirProfileScanner {
         eltName = name
       } else if (eltName.startsWith('!')) {
         eltName = eltName.substring(1) // strip ignore marker
+
         if (mapping.containsKey(eltName) || mapping.containsKey(rawEltName)) {
           // profile is ignoring an element that is present in base resource which is allowed
           elements.add(eltName)
@@ -232,7 +233,13 @@ class FhirProfileValidator extends FhirProfileScanner {
         String binding = worksheet.getCellAt(i, bindIdx).getData$().trim()
         if (binding) {
           flags.add('V')
+
           // TODO validate binding compared to base resource
+          // http://hl7-fhir.github.io/terminologies.html#strength
+          //  1.23.0.2.1 Required
+          //  When an element is bound to a required value set, derived profiles may state rules on which codes can be used,
+          //  but cannot define new or additional codes for these elements.
+
           // if have binding then should specify short value
           if (shortIdx) {
             val = worksheet.getCellAt(i, shortIdx).getData$().trim()
@@ -319,6 +326,7 @@ class FhirProfileValidator extends FhirProfileScanner {
         String cardPrint = null
         String expectedCard = exceptions.get(name)
         if (cardinality == expectedCard) {
+          printf '\t%s\t%s\t%s (expected)%n', eltName, baseCard, cardinality
           int ind = cardinality.indexOf('..')
           if (ind > 0) {
             // cardinality is correct exception - green color
@@ -352,7 +360,11 @@ class FhirProfileValidator extends FhirProfileScanner {
               classType = 'error'
               // if element is required (i.e., min=1) then cannot make it optional.
               // Source: http://fhirblog.com/2014/03/26/fhir-profiles-an-overview/
-              // Source: https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html#2.11.0.3
+              // FHIR spec (section Limitations of Use)
+              //  http://www.hl7.org/implement/standards/fhir/profiling.html#2.13.0.4
+              //  http://www.hl7.org/fhir/2015May/profiling.html#2.14.0.4
+              //  http://www.hl7.org/implement/standards/fhir/2015Jan/profiling.html#2.11.0.3
+              //  https://www.hl7.org/implement/standards/FHIR-Develop/profiling.html#2.11.0.3
             } else if (baseCard.endsWith('..1') && cardinality.endsWith('..*')) {
               classType = 'error'
               // if max=1 is specified in base then can't it make it many.
@@ -760,7 +772,12 @@ class FhirProfileValidator extends FhirProfileScanner {
   void printHeader() {
     printResource()
     if (profile && profile != lastProfile) {
-      String name = (profile.id ?: profile.name)
+      String name
+      if (profile.multiWorksheets && profile.id) {
+        // use full name if profile spreadsheet has multiple structures
+        name = String.format('%s-%s', profile.id, profile.worksheetName.toLowerCase())
+      } else name = profile.id ?: profile.name
+
       // println "profile: $name"
       //out.println("<h3>profile: " + name + "</h3>")
       out.printf('<h3>profile: %s&nbsp;<a href="%s%s-%s.html"><img src="images/external_link_icon.gif"></a></h3>',
