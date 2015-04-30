@@ -311,7 +311,11 @@ class FhirProfileValidator extends FhirProfileScanner {
         printf '\ttypeDiff: %s\t%s%n\t\tbase=%s%n\t\ttype=%s%n', name, cardinality, baseType, type
         // type += "/" + details.type
         typeDiff = true
-        if (type) errors++ // if type not defined then not an error but intentional omission
+        // Element type implied in domain resource so valid to have baseType omitted
+        // otherwise an error
+        if (type && !(baseType.isEmpty() && type == 'Element')) {
+          errors++ // if type not defined then not an error but intentional omission
+        }
       }
 
       // check cardinality
@@ -433,7 +437,13 @@ class FhirProfileValidator extends FhirProfileScanner {
           }
           typeDef += '<br>' + type
         }
-        String classType = typeDiff && type ? 'error' : type || baseType.isEmpty() ? '' : 'empty'
+        String classType
+        if (baseType.isEmpty() && type == 'Element') {
+          // Element type implied in domain resource so valid to have this omitted
+          classType = 'empty' // => green cell
+        }
+        else classType = typeDiff && type ? 'error' : type || baseType.isEmpty() ? '' : 'empty'
+
         if (classType == 'empty' && !truncated) {
             typeDef = "<span title='type unspecified in profile'>$typeDef</span>"
         }
@@ -468,7 +478,11 @@ class FhirProfileValidator extends FhirProfileScanner {
             type = type.substring(0,30) + "..."
             truncated = true
           }
-          classType = 'error'
+          if (baseType.isEmpty() && type == 'Element') {
+            // Element type implied in domain resource so valid to have this omitted
+            classType = 'empty' // => green cell
+          }
+          else classType = 'error'
           typeDetail = "$baseType<br>$type"
         } else if (baseType.isEmpty()) {
           classType = ''
@@ -480,13 +494,17 @@ class FhirProfileValidator extends FhirProfileScanner {
         }
         if (truncated) {
           String origTypeDetail = origType
-          if (classType == 'empty') origTypeDetail += '<BR>Type is unspecified in profile defaulting to base type.'
+          if (classType == 'empty') {
+            origTypeDetail += String.format('<BR>Type is unspecified in %s.',
+                    baseType.isEmpty() ? 'base resource' : 'profile defaulting to base type' )
+          }
           out.printf('''<tr><td%s>%s<td>%s<td>%s<td class="%s">
 <span class="dropt">%s<span style="width:500px;">%s<BR>%s</span></span>%n''',
               nameClass, eltName, flags.join(', '), cardinality,
               classType, typeDetail, origBaseType, origTypeDetail)
         } else {
-          if(classType == 'empty') typeDetail = "<span title='type unspecified in profile'>$baseType</span>"
+          if(classType == 'empty') typeDetail = baseType.isEmpty() ? "<span title='type unspecified in base'>$type</span>"
+                  : "<span title='type unspecified in profile'>$baseType</span>"
           //typeDetail += "/class=" + classType //debug
           out.printf('<tr><td%s>%s<td>%s<td>%s<td class="%s">%s%n',
             nameClass, eltName, flags.join(', '), cardinality, classType, typeDetail)
