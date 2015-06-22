@@ -240,14 +240,16 @@ class FhirProfileValidator extends FhirProfileScanner {
           //  When an element is bound to a required value set, derived profiles may state rules on which codes can be used,
           //  but cannot define new or additional codes for these elements.
 
+          /*
           // if have binding then should specify short value
           if (shortIdx) {
             val = worksheet.getCellAt(i, shortIdx).getData$().trim()
-            if (val.isEmpty() /*&& details?.parent == null*/) {
+            if (val.isEmpty()) { // && details?.parent == null) {
               // REVIEW: if element is expanded [x] type (e.g. valueString, etc.) then ignore short value warning
               infoList.add('element has binding and may specify a short value: ' + eltName)
             }
           }
+          */
         }
       }
       if (valueIdx) {
@@ -798,8 +800,12 @@ class FhirProfileValidator extends FhirProfileScanner {
 
       // println "profile: $name"
       //out.println("<h3>profile: " + name + "</h3>")
-      out.printf('<h3>profile: %s&nbsp;<a href="%s%s-%s.html"><img src="images/external_link_icon.gif"></a></h3>',
-              name, baseUrl, profile.id, profile.worksheetName.toLowerCase())
+      out.printf('<h3>profile: %s', name)
+      if (profile.id && profile.worksheetName) {
+        out.printf('&nbsp;<a href="%s%s-%s.html"><img src="images/external_link_icon.gif"></a>',
+                baseUrl, profile.id, profile.worksheetName.toLowerCase())
+      }
+      out.println('</h3>')
       lastProfile = profile
     }
   }
