@@ -30,6 +30,14 @@ class FhirUtils {
   private final static File rules
 
   /**
+   * implementation guide (e.g. cqf, daf, etc.)
+   * Exists as folder by guide name in guides folder
+   * with .xml file by same name; e.g. guides/cqf/cqf.xml
+   * which defines profiles for particular IG.
+   */
+  private final static String guide
+
+  /**
    * ProfilePattern used to include only those profiles
    * of interest in processing and skip all others. If unspecified then the
    * default pattern /.*profile-spreadsheet.xml$/ will be used.
@@ -68,6 +76,11 @@ class FhirUtils {
     // if (!val) // throw new IllegalArgumentException("profilePattern property is required")
     profilePattern = Pattern.compile(val)
 
+    val = props.getProperty('implementationGuide')
+    if (val) {
+      guide = val
+    }
+
     val = props.getProperty('profileRules')
     if (val) {
       rules = new File(val)
@@ -89,5 +102,9 @@ class FhirUtils {
 
   static Pattern getProfilePattern() {
     return profilePattern
+  }
+
+  static String getGuide() {
+    return guide
   }
 }
