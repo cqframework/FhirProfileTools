@@ -129,7 +129,7 @@ class FhirProfileValidator extends FhirProfileScanner {
       final String rawEltName = cell1.getData$()
       if ('' == rawEltName) break // element name should not be blank: this means reached the end so stop processing
       String eltName = rawEltName
-      if (eltName.endsWith('.extension')) {
+      if (eltName.endsWith('.extension') || eltName.endsWith('.modifierExtension')) {
         if (eltName.startsWith('!')) continue // ignore skipped extensions
         if (!nameIdx) continue // ignore extensions without names
         def name = worksheet.getCellAt(i, nameIdx).getData$()
@@ -174,7 +174,7 @@ class FhirProfileValidator extends FhirProfileScanner {
       // NOTE: special [x] variable typed elements are auto-expanded to mapping table.
       // e.g. Condition.onset[x] : dateTime | Age 0.. => Condition.onsetAge, Condition.onsetDateTime, etc.
       // Profiles can specify the expanded names (e.g. Condition.onsetAge) in differential view.
-      if (rawEltName.endsWith('.extension')) {
+      if (rawEltName.endsWith('.extension') || rawEltName.endsWith('.modifierExtension')) {
         // use generic extension details based on structuredefinition.profile.xml definition
         if (details != null) {
           nameClass = ' class="warn"'
