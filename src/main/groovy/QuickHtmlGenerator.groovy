@@ -51,6 +51,8 @@ import java.util.regex.Matcher
  *  7/09/15 Use value set names in link anchor text and description for mouse-over tool tip
  *  7/14/15 Fix urls to valuesets to reflect new URL naming scheme in FHIR
  *  7/24/15 cqf valuesets are now published in "cqf" sub-folder (likewise for daf)
+ *  7/31/15 Handle complex types as its own class. Treat same as resources
+ *          with detailed class-level pages linked by type to other pages.
  *
  */
 class QuickHtmlGenerator extends FhirSimpleBase {
@@ -60,7 +62,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
    * required to reference valuesets in element bindings
    */
   static final String baseUrl = 'http://hl7-fhir.github.io/'
-  //static final String baseUrl = 'http://hl7.org/fhir/2015May/' // DSTU2 snapshot
+  //static final String baseUrl = 'http://hl7.org/fhir/2015May/' // DSTU2 ballot snapshot
 
   static final String outDir = "html"
 
@@ -97,6 +99,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
   static final Set<String> implicitElements = new HashSet<>()
   static final Set<String> primTypes = new HashSet<>()
 
+  static final Set<String> complexTypes = new HashSet<>()
   // structure to target class name mappings for logical model
   static final Map classNames = [
           'Adverseevent'              : 'AdverseEvent',
@@ -140,8 +143,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           'Period'             : 'Interval',
           'Range'              : 'Interval',
           'time'               : 'Time',
-          //? 'Timing'         : '??',
-          'Quantity'           : 'Quantity',
+          //'Quantity'           : 'Quantity',
           'uri'                : 'Uri',
   ]
 
@@ -167,34 +169,51 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
     // e.g. http://hl7-fhir.github.io/datatypes.html#CodeableConcept
     primTypes.addAll([
-            'Address',
-            'Age',
-            'Attachment',
+            //'Address',
+            //'Age',
+            //'Attachment',
+            'base64Binary',
             'boolean',
             'code',
             'Coding',
             'CodeableConcept',
-            'ContactPoint',
+            //'ContactPoint',
             'date',
             'dateTime',
             'decimal',
-            'Duration',
-            'HumanName',
-            'Identifier',
+            //'Duration',
+            //'HumanName',
+            //'Identifier',
             'instant',
             'integer',
             'unsignedInt',
             'positiveInt',
             'oid',
             'Period',
-            'Quantity',
+            //'Quantity',
             'Range',
-            'Ratio',
-            'SampledData',
+            //'Ratio',
+            //'SampledData',
             'string',
             'time',
-            'Timing',
+            //'Timing',
             'uri',
+    ])
+
+    complexTypes.addAll([
+            'Address',
+            'Age',
+            'Annotation',
+            'Attachment',
+            'ContactPoint',
+            'Duration',
+            'HumanName',
+            'Identifier',
+            'Money',
+            'Quantity',
+            'Ratio',
+            'SampledData',
+            'Timing',
     ])
 
   }
@@ -257,6 +276,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     }
   }
 
+  @TypeChecked
   void process(File f) {
     // if (!(f.getName() =~ /.*qicore-.*profile.xml$/)) return
 
@@ -344,28 +364,30 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         elt.getType().each { type ->
           String code = type.getCode()
           // println "X: type code=$code"
-          if (code == 'Reference' && type.hasProfile()) {
-            final String uri = getProfile(type) // TODO: type changed from String to List<UriType> (fix)
-            if (uri.startsWith(targetUri) && !uri.contains('qicore-') && !uriToClassName.containsKey(uri)) {
-              // uri = http://hl7.org/fhir/StructureDefinition/DeviceMetric
-              // resourceName = DeviceMetric (class name)
-              def resourceName = uri.substring(targetUri.length())
-              if (checkResource(resourceName, uri, elt)) {
-                profileNames.add(resourceName) // recursively add new resource refs as find them
+          if (code == 'Reference') {
+            if (type.hasProfile()) {
+              final String uri = getProfile(type) // TODO: type changed from String to List<UriType> (fix)
+              if (uri.startsWith(targetUri) && !uri.contains('qicore-') && !uriToClassName.containsKey(uri)) {
+                // uri = http://hl7.org/fhir/StructureDefinition/DeviceMetric
+                // resourceName = DeviceMetric (class name)
+                def resourceName = uri.substring(targetUri.length())
+                if (checkResource(resourceName, uri, elt)) {
+                  profileNames.add(resourceName) // recursively add new resource refs as find them
+                }
               }
             }
           } // Reference?
+          else if (complexTypes.contains(code) && checkResource(code, null, elt)) {
+            // e.g. Address
+            profileNames.add(code) // recursively add new resource refs as find them
+          } // complex type?
         } // each type
       } // each elemet
     } // each profile
-    // println "XX: END"
-
-    // simpletypes
-    // publish/address.profile.xml
-    // checkResource('Address', null, null)
   }
 
 
+  @TypeChecked
   boolean checkResource(String resourceName, String uri, ElementDefinition elt) {
     if (profiles.containsKey(resourceName) /* || resourceName == 'Resource' */) {
       // println "X: dup $resourceName"
@@ -407,6 +429,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 // ---------------------------------------------------------
 // create detailed class-level pages
 // ---------------------------------------------------------
+  @TypeChecked
   void generateHtml(String className, StructureDefinition profile) {
 
     final String resourceName = getResourceName(profile)
@@ -1493,6 +1516,10 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           //} //else if (code == 'BackboneElement') {
             //checkElementType = true
             //if (elt.hasMax() && elt.getMax() == '*') println "listtype BackboneElement " + edh.path
+          }
+          else if (complexTypes.contains(code)) {
+            // add link to complex type class
+            sb.append("<a href='${code}.html'>${code}</a>")
           } else {
             typeCheck.add(code)
             /*
@@ -2015,15 +2042,30 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           strong('QUICK Data Model')
         }
         div(class: 'indexContainer') {
+          def otherClasses = new ArrayList<String>()
           h2(title: 'Classes', 'Classes')
           ul(title: "Classes") {
             // h1(class: "bar", 'All Classes')
             //Collections.sort(classes)
             //classes.each { className ->
             profiles.keySet().each { className ->
+              if (complexTypes.contains(className))
+                otherClasses.add(className)
+              else
               li {
                 // String className = getClassName(id)
                 a(href: "pages/${className}.html", className)
+              }
+            }
+          }
+          if (otherClasses) {
+            h2(title: 'Classes', 'Complex Type Classes')
+            ul(title: "Classes") {
+              otherClasses.each { className ->
+                li {
+                  // String className = getClassName(id)
+                  a(href: "pages/${className}.html", className)
+                }
               }
             }
           }
@@ -2109,6 +2151,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 <tbody>''')
               int idx = 0
               profiles.each { String className, StructureDefinition profile ->
+                if (complexTypes.contains(className)) return // skip complex types
                 if (resources.containsKey(className)) {
                   println "X: other resource: $className"
                   // return  // skip non-qicore profiled resources on overview
