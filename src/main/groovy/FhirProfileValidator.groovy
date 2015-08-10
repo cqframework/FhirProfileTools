@@ -115,7 +115,7 @@ class FhirProfileValidator extends FhirProfileScanner {
     int cardIdx = index.get(LABEL_CARD)
     int typeIdx = index.get(LABEL_TYPE)
     int mustIdx = index.get(LABEL_MUST_SUPPORT)
-    Integer shortIdx = index.get(LABEL_SHORT_LABEL) // optional
+    //Integer shortIdx = index.get(LABEL_SHORT_LABEL) // optional
     Integer bindIdx = index.get(LABEL_BINDING) // optional
     Integer valueIdx = index.get(LABEL_VALUE) // optional
     Integer nameIdx = index.get(LABEL_PROFILE_NAME) // optional
@@ -315,7 +315,7 @@ class FhirProfileValidator extends FhirProfileScanner {
         typeDiff = true
         // Element type implied in domain resource so valid to have baseType omitted
         // otherwise an error
-        if (type && !(baseType.isEmpty() && type == 'Element')) {
+        if (type && !(baseType.isEmpty() && type == 'Element' || baseType == 'Extension')) {
           errors++ // if type not defined then not an error but intentional omission
         }
       }
@@ -444,7 +444,12 @@ class FhirProfileValidator extends FhirProfileScanner {
           // Element type implied in domain resource so valid to have this omitted
           classType = 'empty' // => green cell
         }
-        else classType = typeDiff && type ? 'error' : type || baseType.isEmpty() ? '' : 'empty'
+        else {
+          if (typeDiff && type) {
+            // if base type is extension then profile can override the extension type which we're not checking
+            classType = origBaseType == 'Extension' ? 'info' : 'error'
+          } else classType = type || baseType.isEmpty() ? '' : 'empty'
+        }
 
         if (classType == 'empty' && !truncated) {
             typeDef = "<span title='type unspecified in profile'>$typeDef</span>"
