@@ -41,7 +41,7 @@ class FhirProfileValidator extends FhirProfileScanner {
 
   File outputDir
   PrintWriter out
-  int errCount, warnCount
+  int errCount, warnCount, infoCount
   final Map<String, Integer> defaultIdx, defaultIdx2
   final List<String> infoList = new ArrayList<>()
 
@@ -415,8 +415,10 @@ class FhirProfileValidator extends FhirProfileScanner {
               // Extension card is by default 0..* so no need to show base card if card is specified for given extension
               // e.g. type = Extension{#cause#item} or Extension{http://hl7.org/fhir/StructureDefinition/communication-reasonNotPerformed
               out.printf('<tr><td%s>%s<td>%s<td>%s', nameClass, eltName, flags.join(', '), cardPrint)
-            } else
+            } else {
               out.printf('<tr><td%s>%s<td>%s<td class="%s">%s<br>%s', nameClass, eltName, flags.join(', '), classType, baseCard, cardPrint)
+              if (classType == 'info') infoCount++
+            }
           } else {
             // otherwise cardinality not specified in profile -- use base resource definition by default
             out.printf('<tr><td%s>%s<td>%s<td>%s', nameClass, eltName, flags.join(', '), baseCard)
@@ -448,6 +450,7 @@ class FhirProfileValidator extends FhirProfileScanner {
           if (typeDiff && type) {
             // if base type is extension then profile can override the extension type which we're not checking
             classType = origBaseType == 'Extension' ? 'info' : 'error'
+            if (classType=='info') infoCount++
           } else classType = type || baseType.isEmpty() ? '' : 'empty'
         }
 
@@ -499,6 +502,7 @@ class FhirProfileValidator extends FhirProfileScanner {
           classType = 'empty' // green cell
           typeDetail = baseType
         }
+        if (classType == 'info') infoCount++
         if (truncated) {
           String origTypeDetail = origType
           if (classType == 'empty') {
@@ -774,7 +778,8 @@ class FhirProfileValidator extends FhirProfileScanner {
 
   @TypeChecked
   void tearDown() {
-    printf('%nErrors: %d Warnings: %d%n', errCount, warnCount)
+    if (infoCount != 0) printf('%nErrors: %d Warnings: %d Info: %d%n', errCount, warnCount, infoCount)
+    else printf('%nErrors: %d Warnings: %d%n', errCount, warnCount)
     out.println("<HR><P>Total errors: $errCount")
     if (warnCount) out.println(" warnings: $warnCount")
     out.println("<BR>Generated on " + new Date())
