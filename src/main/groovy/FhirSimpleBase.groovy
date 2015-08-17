@@ -435,7 +435,7 @@ class FhirSimpleBase {
     }
 
     ElementDefinition getElement() {
-      if (extElt == null) {
+      if (extElt == null && extDef != null) {
         if (extProfileEltName) {
           // check sub-element; e.g. extension.extension name=item
           // extElt = getElementByName(extDef.getSnapshot().getElement(), 'Extension.extension', extProfileSubElt)
