@@ -778,6 +778,7 @@ class FhirProfileValidator extends FhirProfileScanner {
 
   @TypeChecked
   void tearDown() {
+    if (profileCount == 0) println "no matching profiles found"
     if (infoCount != 0) printf('%nErrors: %d Warnings: %d Info: %d%n', errCount, warnCount, infoCount)
     else printf('%nErrors: %d Warnings: %d%n', errCount, warnCount)
     out.println("<HR><P>Total errors: $errCount")
