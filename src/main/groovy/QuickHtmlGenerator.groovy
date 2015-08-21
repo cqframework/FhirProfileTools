@@ -53,6 +53,8 @@ import java.util.regex.Matcher
  *  7/24/15 cqf valuesets are now published in "cqf" sub-folder (likewise for daf)
  *  7/31/15 Handle complex types as its own class. Treat same as resources
  *          with detailed class-level pages linked by type to other pages.
+ *  8/17/15 QICore profiles, valuesets, etc. are now published in "qicore" sub-folder
+ *  8/21/15 Handle renaming of profile ids (e.g. condition-qicore-qicore-condition > qicore-condition)
  *
  */
 class QuickHtmlGenerator extends FhirSimpleBase {
@@ -118,6 +120,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           'Medicationadministration'  : 'MedicationAdministration',
           'Medicationdispense'        : 'MedicationDispense',
           'Medicationprescription'    : 'MedicationPrescription',
+          'Medicationorder'           : 'MedicationOrder',
           'Medicationstatement'       : 'MedicationStatement',
           'Procedurerequest'          : 'ProcedureRequest',
           'Referralrequest'           : 'ReferralRequest',
@@ -213,6 +216,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             'Quantity',
             'Ratio',
             'SampledData',
+            'Signature',
             'Timing',
     ])
 
@@ -391,11 +395,17 @@ class QuickHtmlGenerator extends FhirSimpleBase {
   boolean checkResource(String resourceName, String uri, ElementDefinition elt) {
     if (profiles.containsKey(resourceName) /* || resourceName == 'Resource' */) {
       // println "X: dup $resourceName"
-      return
+      return false
+    }
+    if (resourceName == 'any') {
+      //println "XX: any ref " + elt.getPath()
+      // e.g. SupplyRequest.reason[x]
+      return false
     }
     def baseRes = resources.get(resourceName)
     if (baseRes == null) {
       File file = new File(publishDir, resourceName.toLowerCase(Locale.ROOT) + ".profile.xml")
+      // e.g. Resource => resource.profile.xml
       if (file.exists()) {
         try {
           if (uri) println "X: load resource $uri"
@@ -672,7 +682,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           // not errors: e.g., Patient.extension.value[x], Patient.extension.id
           // println "INFO-ERR: skip ext $pathName"
           // ignore ??
-        } else println "ERROR: duplicate element: $pathName"
+        } else println "WARN: duplicate element: $pathName path=$path name=" + elt.getName()
         return
       }
 
@@ -702,7 +712,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
   void generateClassHtml(StructureDefinition profile, String resourceName, String className,
                          ElementDefinitionHolder edh) {
 
-    final String id = profile.getId()
+    //final String id = profile.getId()
 
     def writer = new FileWriter("$outDir/pages/${className}.html")
     // Need ISO-8859-1 encoding because some descriptions contain non-UTF8 characters
@@ -916,7 +926,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       if (elt.hasType() && 'Extension' == elt.getType().get(0)?.getCode())
         isExtension = true
       else if (path.endsWith(".extension") || path.endsWith('.modifierExtension')) {
-        println "WARN: element has .extension suffix but not extension type???"
+        printf "WARN: element has .extension suffix but not extension type??? path=%s name=%s%n", elt.getPath(), elt.getName()
       }
 
       if (isExtension) {
@@ -1420,7 +1430,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                 // printf "CC: %s %s name=%s%n", profileUrl, elt.getPath(), elt.getName()
                 hasLink = true
               } // else ???
-              else if (code != 'Resource') {
+              else if (code != 'Resource' && code != 'any') {
                 //if (resourceName == TARGET_RESOURCE) println "X: name ($code) not found in profiles: tc=$typeClassName"
                 // e.g. Group, Appointment, Media, etc. resource references with no associated QICore profile
                 /*
@@ -1717,7 +1727,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                 } else if (file.getName().contains("uslab-")) {
                   baseName = "uslab/" + file.getName()
                 } else {
-                  baseName = "cqf/" + file.getName()
+                  baseName = "qicore/" + file.getName()
                 }
                 file = new File(publishDir, baseName)
                 if (file.exists()) {
@@ -1789,7 +1799,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
               }
               if (!vsFile.exists()) {
                 vsFile = new File(parentDir, "valueset-" + baseName + ".xml")
-                // if (!vsFile.exists()) vsFile = new File(parentDir, "cqf/" + vsFile.getName())
+                //if (!vsFile.exists()) vsFile = new File(parentDir, "qicore/" + vsFile.getName())
                 // e.g. http://hl7.org/fhir/ValueSet/qicore-priority
                 // println "VS: check $vsFile " + vsFile.exists() // debug case #2 count=91
               } // else println "VS: exists: $vsFile" // #=55 case #1
@@ -2272,12 +2282,11 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     // TODO: revisit if class naming changes; e.g. use snapshot.elements(0).getName() to preserve camel-case name
     //? if (!id) return id
     String name = id
-    int ind = name.lastIndexOf('-qicore-')
-    if (ind > 0) {
+    if (name.startsWith('qicore-')) {
       // make adverseevent-qicore-qicore-adverseevent into AdverseEvent
       // and diagnosticorder-qicore-diagnosticorder into DiagnosticOrder
       // use name of first element in snapshot if consistent in profiles or just use lookup table?
-      name = StringUtils.capitalize(name.substring(ind + 8))
+      name = StringUtils.capitalize(name.substring(7))
     }
     return classNames.get(name) ?: name
   }
