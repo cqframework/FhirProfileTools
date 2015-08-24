@@ -18,7 +18,6 @@ import org.hl7.fhir.instance.model.ElementDefinition
 import org.hl7.fhir.instance.model.ElementDefinition.TypeRefComponent
 import org.hl7.fhir.instance.model.ElementDefinition.ElementDefinitionBindingComponent
 import org.hl7.fhir.instance.model.StructureDefinition
-import org.hl7.fhir.instance.model.UriType
 import org.hl7.fhir.instance.model.ValueSet
 
 import java.text.SimpleDateFormat
@@ -55,6 +54,7 @@ import java.util.regex.Matcher
  *          with detailed class-level pages linked by type to other pages.
  *  8/17/15 QICore profiles, valuesets, etc. are now published in "qicore" sub-folder
  *  8/21/15 Handle renaming of profile ids (e.g. condition-qicore-qicore-condition > qicore-condition)
+ *  8/24/15 Cleanup valueset reference handling
  *
  */
 class QuickHtmlGenerator extends FhirSimpleBase {
@@ -146,6 +146,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           'Period'             : 'Interval',
           'Range'              : 'Interval',
           'time'               : 'Time',
+          'markdown'           : 'String',
           //'Quantity'           : 'Quantity',
           'uri'                : 'Uri',
   ]
@@ -189,6 +190,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             //'Identifier',
             'instant',
             'integer',
+            'markdown',
             'unsignedInt',
             'positiveInt',
             'oid',
@@ -216,7 +218,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             'Quantity',
             'Ratio',
             'SampledData',
-            'Signature',
             'Timing',
     ])
 
@@ -247,7 +248,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     //println()
     //println typeCodes // [id]
     println()
-    println typeCheck
+    println "types: $typeCheck"
     // [Address, Age, Annotation, Attachment, ContactPoint, Duration, HumanName, Identifier, Ratio, SampledData, Timing, code, id, oid, positiveInt, unsignedInt]
     System.exit(0)
   }
@@ -285,7 +286,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     // if (!(f.getName() =~ /.*qicore-.*profile.xml$/)) return
 
     StructureDefinition profile = (StructureDefinition) parseResource(f)
-    String id = profile.getId()
+    String id = profile.getId() // e.g. qicore-encounter
 
     println()
     println "-" * 40
@@ -552,7 +553,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       println "\n path : " + path // debug
 
       /*
-      // lsit all code-typed elements
+      // list all code-typed elements
       if (qicoreProfiles.contains(className) && elt.hasType()) {
         for (TypeRefComponent type : types) {
           String code = type.getCode()?.toLowerCase()
@@ -593,7 +594,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         println "WARN: multi-type not ending with [x]: $path"
 
       String pathName = path
-      final boolean isExtension = types && 'Extension' == types.get(0)?.getCode()
+      final boolean isExtension = types && 'Extension' == types.get(0)?.getCode() || path.endsWith(".extension")
       final boolean mustSupport = elt.getMustSupport()
 
       if (isExtension) {
@@ -682,7 +683,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           // not errors: e.g., Patient.extension.value[x], Patient.extension.id
           // println "INFO-ERR: skip ext $pathName"
           // ignore ??
-        } else println "WARN: duplicate element: $pathName path=$path name=" + elt.getName()
+        } else println "ERROR: duplicate element: $pathName"
         return
       }
 
@@ -926,6 +927,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       if (elt.hasType() && 'Extension' == elt.getType().get(0)?.getCode())
         isExtension = true
       else if (path.endsWith(".extension") || path.endsWith('.modifierExtension')) {
+        isExtension = true
         printf "WARN: element has .extension suffix but not extension type??? path=%s name=%s%n", elt.getPath(), elt.getName()
       }
 
@@ -1652,37 +1654,24 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     //StringBuilder sb = new StringBuilder()
     if (binding) {
       if (binding.hasValueSet()) {
-        def valueSet = binding.getValueSet()
-
-        def ref
-        try {
-          if (valueSet instanceof org.hl7.fhir.instance.model.Reference) {
-            ref = binding.getValueSetReference()
-            if (ref && ref.hasReference()) {
-              //println "XX: string ref: " + ref.getClass().getName()
-              ref = ref.getReference()
-              // NOTE: hasBinding method removed as of July 2015
-              //if (binding.hasName())
-                //printf "X: binding: %-22s %-20s %s%n", elt.getPath(), binding.getName(), ref
-              //else
-                printf "X: binding: %-27s %s%n", elt.getPath(), ref//.replace("/ValueSet/","/vs/") // debug
-            }
-          } else if (valueSet instanceof UriType) {
-            ref = binding.getValueSetUriType()
-            if (ref) ref = ref.getValue()
-          } else println "X: binding w/other valueset type: $valueSet"
-        } catch (Exception e) {
-          def s = e.getMessage()
-          if (!s) {
-            def cause = e.getCause()
-            if (cause) s = cause.getMessage()
-            if (!s) s = e.toString()
+         String ref
+        if (binding.hasValueSetUriType()) {
+          def vs = binding.getValueSetUriType()
+          if (vs) ref = vs.getValue()
+        } else if (binding.hasValueSetReference()) {
+          def vs = binding.getValueSetReference()
+          if (vs && vs.hasReference()) {
+            //println "XX: string ref: " + ref.getClass().getName()
+            ref = vs.getReference()
+            // NOTE: hasBinding method removed as of July 2015
+            //if (binding.hasName())
+            //printf "X: binding: %-22s %-20s %s%n", elt.getPath(), binding.getName(), ref
+            //else
+            printf "X: binding: %-27s %s%n", elt.getPath(), ref //.replace("/ValueSet/","/vs/") // debug
           }
-          // e.printStackTrace(System.out)
-          // println "WARN: uritype=" + binding.getValueSetUriType()
-          println "WARN: bad ref: $s " + binding.hasValueSet() // + " " + binding.getValueSet()
-        }
-        if (ref && ref instanceof String) {
+        } else println "X: binding w/other valueset type: " + binding.getValueSet()
+
+        if (ref) {
           String href, bindingName = '', bindingDef
           if (binding.hasDescription()) bindingDef = StringUtils.trimToNull(binding.getDescription())
           // NOTE: new v3 URL as of 13-Jul-2015 http://hl7.org/fhir/ValueSet/v3-ActReason
@@ -2163,7 +2152,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
               profiles.each { String className, StructureDefinition profile ->
                 if (complexTypes.contains(className)) return // skip complex types
                 if (resources.containsKey(className)) {
-                  println "X: other resource: $className"
+                  println "X: other resource: $className" // e.g. VisionPrescription
                   // return  // skip non-qicore profiled resources on overview
                 }
                 String outName = className
@@ -2283,6 +2272,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     //? if (!id) return id
     String name = id
     if (name.startsWith('qicore-')) {
+      // qicore-encounter => Encounter
       // make adverseevent-qicore-qicore-adverseevent into AdverseEvent
       // and diagnosticorder-qicore-diagnosticorder into DiagnosticOrder
       // use name of first element in snapshot if consistent in profiles or just use lookup table?
