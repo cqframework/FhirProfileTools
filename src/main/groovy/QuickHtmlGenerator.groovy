@@ -214,10 +214,12 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             'Duration',
             'HumanName',
             'Identifier',
+            'Meta',
             'Money',
             'Quantity',
             'Ratio',
             'SampledData',
+            'Signature',
             'Timing',
     ])
 
@@ -1014,7 +1016,9 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       List<TypeRefComponent> type = elt.hasType() ? elt.getType() : null
       if (type == null) println "P0: no type"
       else if (resourceName == TARGET_RESOURCE) println "P0: type=" + typeShortList(type) //debug
-      if (isExtension && type && type.get(0).hasProfile()) {
+      def firstType = isExtension && type ? type.get(0) : null
+      if (firstType && 'Extension' == firstType.getCode() && firstType.hasProfile()) {
+        // if type is Extension then need to lookup its type in extension definition
         final String extProfile = getProfile(type.get(0))
         ExtensionDef extProfileDef = createExtensionDef(elt, extProfile) //new ExtensionDef(elt, extProfile)
 
