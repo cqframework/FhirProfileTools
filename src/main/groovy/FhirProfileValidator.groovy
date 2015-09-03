@@ -191,6 +191,9 @@ class FhirProfileValidator extends FhirProfileScanner {
           // found element name in base resource
           warnings.add("profile adding ignorable element: " + eltName)
         } else {
+          // ignore most common case; e.g., xx.address.state, xx.address.country
+          if (eltName.endsWith('.address.state') || eltName.endsWith('.address.country')) continue main
+          println "WARN: element not found $eltName"
           // handle case where profile is referring to a component of a structure
           // e.g. Patient.identifier.system where Patient.identifier is of type Identifier
           // Observation.name <= Observation.name.coding.display
@@ -626,7 +629,7 @@ class FhirProfileValidator extends FhirProfileScanner {
         profTypes.removeAll(baseTypes)
         if (profTypes.isEmpty())
           printf "\tERROR: type list mismatch: size base=%d size profile=%s: %s%n", baseTypes.size(), size, eltName
-        else
+        else if (baseType != 'Extension')
           println "\tERROR: list mismatch in $eltName: types in profile not in base: $profTypes"
       }
       return val
