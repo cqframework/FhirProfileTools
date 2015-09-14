@@ -96,9 +96,9 @@ class FhirSimpleBase {
     return typeShortList(list, true)
   }
 
-  //@TypeChecked
+  @TypeChecked
   static List<String> typeShortList(List<TypeRefComponent> list, boolean useRefPrefix) {
-    if (!list) return Collections.emptySet() // not type safe
+    if (!list) return Collections.emptyList()
     StringBuilder sb = new StringBuilder()
     def strList = new ArrayList<String>()
     // Reference(Practitioner | RelatedPerson)
@@ -445,17 +445,74 @@ class FhirSimpleBase {
           if (extElt == null && extDef.hasDifferential()) {
             //extElt = getElementByName(extDef.getDifferential().getElement(), 'Extension.extension', extProfileSubElt)
             extElt = getExtensionValueByName(extDef.getDifferential().getElement(), extProfileEltName)
-            if (extElt) println "X: extension subelt-diff $extProfileEltName"
-          } else println "X: extension subelt $extProfileEltName"
+            if (extElt) println "X: extension subelt-diff $extProfileEltName" //debug
+          } else println "X: extension subelt $extProfileEltName" //debug
 
           // if (tabName != 'All' && extElt.hasMin() || extElt.hasMax()) printf "XX: 1subelt ext card: [%d %s] %s%n", extElt.hasMin() ? extElt.getMin() : -1, extElt.getMax(), elt.getName()
 
         } else {
 
-          extElt = extDef.hasSnapshot() ? getElementByName(extDef.getSnapshot().getElement(), 'Extension.value[x]', '') : null
-          if (extElt == null && extDef.hasDifferential()) {
-            extElt = getElementByName(extDef.getDifferential().getElement(), 'Extension.value[x]', '')
+          // NOTE: as of August ~24, 2015, simple check of extension value type = Element was eliminated
+          // need check of simple type vs Element type; e.g. Goal.category is simple and Goal.target is complex
+
+          // gforge issue # 8611. Element extension no longer have an explicit Element type defined in its value.
+          // now need to scan elements to detect if extension has any extenions in which case it's an Element.
+
+          if (extDef.hasDifferential()) {
+            // boolean isElementType = false
+            def elts = extDef.getDifferential().getElement()
+            def it = elts.iterator()
+            while(it.hasNext()) {
+              ElementDefinition elt = it.next()
+              def path = elt.getPath()
+              /*
+              extension-goal-target
+
+              <differential>
+                ...
+                <element>
+                  <path value="Extension.extension"/>
+                  <name value="detail"/>
+                  <short value="The target value range to be achieved"/>
+                  <min value="1"/> <max value="1"/>
+                  <type>
+                    <code value="Extension"/>
+                  </type>
+                </element>
+                ...
+              <element>
+                <path value="Extension.value[x]"/>
+                <min value="0"/> <max value="0"/>
+              </element>
+            </differential>
+               */
+              if (path == 'Extension.extension') {
+                // if Extension.extension has max=0 then it's a simple type
+                if (elt.hasName() && (!elt.hasMax() || elt.getMax() != "0")) {
+                  //isElementType = true
+                  //break
+                  // work-around is create temp element and set type code=Element
+                  // println "EE: " + extDef.getUrl() // debug
+                  extElt = new ElementDefinition()
+                  extElt.setPath('Extension.value[x]')
+                  def type = extElt.addType()
+                  type.setCode('Element')
+                  return extElt
+                }
+              }
+              // also such extensions have value[x] with max=0 to disallow simple values
+            }
+
+            // othewise assume it's a simple extension type (e.g. Reference, CodeableConcept, boolean, etc.)
+
+            extElt = getElementByName(elts, 'Extension.value[x]', '')
+            // examples:
+            // http://hl7.org/fhir/StructureDefinition/allergyintolerance-reasonRefuted
+            // http://hl7.org/fhir/StructureDefinition/procedure-approachBodySite
           }
+
+          // if (extElt == null && extDef.hasSnapshot()) extElt = getElementByName(extDef.getSnapshot().getElement(), 'Extension.value[x]', '')
+
           /*
           //debug
           if (tabName != 'All') {
