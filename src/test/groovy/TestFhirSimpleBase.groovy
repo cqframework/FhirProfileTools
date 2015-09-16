@@ -19,10 +19,12 @@ class TestFhirSimpleBase extends FhirSimpleBase {
     assert profile != null
 
     def elt = getElementByName(profile.getDifferential().getElement(), 'ReferralRequest.requester', null)
+    assert elt && elt.getMustSupport()
     // [Reference(qicore-practitioner | qicore-organization | qicore-patient
     def shortList = typeShortList(elt.getType())
     assert shortList.size() == 1 && shortList.get(0).startsWith('Reference(')
-    assert elt && elt.getMustSupport()
+    shortList = typeShortList(elt.getType(), false)
+	assert shortList.size() == 1 && shortList.get(0) == 'qicore-practitioner | qicore-organization | qicore-patient'
 
     elt = getExtensionByName(profile.getDifferential().getElement(), 'ReferralRequest.refusalReason')
     assert elt != null
@@ -40,7 +42,7 @@ class TestFhirSimpleBase extends FhirSimpleBase {
   }
 
   @Test
-  void testScan() {
+  void testProfileScan() {
     //println "== testScan =="
     publishDir.eachFileMatch(~/.*\.profile.xml$/, { file ->
       def resource = parseResource(file)

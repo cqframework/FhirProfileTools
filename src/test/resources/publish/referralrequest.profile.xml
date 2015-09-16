@@ -273,6 +273,7 @@
           <reference value="http://hl7.org/fhir/ValueSet/diagnostic-order-priority"/>
         </valueSetReference>
       </binding>
+    </element>
     <element>
       <path value="ReferralRequest.patient"/>
       <short value="Patient referred to care or transfer"/>
