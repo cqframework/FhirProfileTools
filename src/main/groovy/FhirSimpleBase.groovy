@@ -411,7 +411,7 @@ class FhirSimpleBase {
         ind = urlpath.lastIndexOf('/')
         if (ind > 0) {
           // check profile extension
-          urlpath = urlpath.substring(ind + 1)
+          urlpath = urlpath.substring(ind + 1).toLowerCase()
           ind = urlpath.indexOf('#')
           if (ind > 0) {
             // e.g. extension-adverseevent-qicore-cause#item.xml
