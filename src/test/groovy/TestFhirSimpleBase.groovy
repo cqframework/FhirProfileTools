@@ -32,7 +32,7 @@ class TestFhirSimpleBase extends FhirSimpleBase {
     def type = elt.hasType() ? elt.getType().get(0) : null
     assert type && type.getCode() == 'Extension'
     String extProfile = getProfile(type)
-    // println "profile=$extProfile"
+    println "XX: profile=$extProfile"
     def extProfileDef = createExtensionDef(elt, extProfile)
     assert extProfileDef != null, "profile=$extProfile"
     //assert extProfileDef.getStructure() != null
