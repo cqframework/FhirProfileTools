@@ -5,7 +5,7 @@ Collection of tools for authors of Fast Healthcare Interoperability Resources
 ([FHIR](http://www.hl7.org/implement/standards/fhir/)) profiles to automate
 tasks such as validation and supplemental documentation generation.
 Initial set of tools are for profiles in Excel XML Spreadsheet 2003 format (aka SpreadsheetML),
-which is typically used to define resources and associated profiles.
+which is used in FHIR to define base resources and associated profiles.
 
 Anybody creating profiles off the continuous integration branch of fhir-svn repo
 has dealt with changes in the base resources and need to reflect those changes
@@ -30,6 +30,10 @@ The FhirProfileValidator can identify the following situations:
  * if profile misses any elements that are defined in the base resource which could have
    been added or renamed after the profile was created.
    
+FhirSimpleBase is a base class with helper methods for parsing the published FHIR structure
+definition XML files (aka profiles). It uses the FHIR Java reference API (tools.jar) that
+is published alongwith the FHIR documentation.
+
 Additional Documentation:
 * [Customizing Validation Rules](customRules.md)
 
