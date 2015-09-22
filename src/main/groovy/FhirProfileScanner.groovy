@@ -10,6 +10,7 @@
  their occurrence.
 */
 import groovy.transform.TypeChecked
+import groovy.transform.TypeCheckingMode
 import nl.fountain.xelem.excel.Cell
 import nl.fountain.xelem.excel.Row
 import nl.fountain.xelem.excel.Workbook
@@ -54,7 +55,7 @@ class FhirProfileScanner {
   public static final String LABEL_EXTENSIBLE = 'Extensible' // non-resource binding only
 
   final ExcelReader reader = new ExcelReader()
-  private final Pattern profilePattern
+  final Pattern profilePattern
 
   protected Workbook xlWorkbook
 
@@ -84,7 +85,11 @@ class FhirProfileScanner {
 
     Workbook xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
     Worksheet worksheet = xlWorkbook.getWorksheet('Profiles')
-    if (worksheet == null) return // no profiles
+    if (worksheet == null) {
+      //println "no profiles in $file"
+      // no profiles
+      return
+    }
 
     //Row row = worksheet.getRowAt(1)
     //def col = worksheet.getColumnAt(3)
@@ -128,6 +133,7 @@ class FhirProfileScanner {
     if (profiles.isEmpty()) {
       // no profiles
       processEmptyProfileList(xlWorkbook)
+      //println "no profiles $file"
       return
     }
 
@@ -203,6 +209,55 @@ class FhirProfileScanner {
     // implement in subclasses
   }
 
+  /**
+   * Check profiles within an HL7 implementation guide (IG) against the base resources
+   */
+  @TypeChecked(TypeCheckingMode.SKIP)
+  void checkGuide(File sourceDir, File file) {
+    if (!file.exists()) {
+      println "ERROR: guide not found: $file"
+      return
+    }
+    println "check guide: " + file.getName()
+    println "Pattern: $profilePattern"
+    XmlParser parser = new XmlParser()
+    Node root = parser.parse(file)
+    File guideDir = file.getParentFile()
+    root.package.extension.each { profileElt ->
+      String source = profileElt.valueUri[0].@value
+      //println source
+      if (/*profileElt.@type == 'spreadsheet' &&*/ source =~ profilePattern) {
+        //println source
+        String name = source
+        // println "check: $name"
+        int ind = name.indexOf('-profile-spreadsheet.xml')
+        if (ind > 0) name = name.substring(0,ind)
+        def profile = new Profile(name, source)
+        Worksheet worksheet = getProfileWorksheet(new File(guideDir, source), profile)
+        if (worksheet) {
+          //println "\tworksheet="+profile.worksheetName
+          //println "\tid="+profile.id
+          Map<String, Integer> index = getWorkSheetIndex(worksheet)
+          // println index // [Aliases:5, Binding:10, Card.:6, Element:4, ...
+          int eltIdx = getIndex(index, LABEL_ELEMENT)
+          String resourceName = worksheet.getCellAt(2, eltIdx).getData$() // resource name
+          // println "resource = $resourceName"
+          String resName = resourceName.toLowerCase(Locale.ROOT)
+          File resfile = new File(sourceDir, "$resName/${resName}-spreadsheet.xml")
+          if (resfile.exists()) {
+            Workbook baseWorkbook = reader.getWorkbook(resfile.getAbsolutePath())
+            Map<String, Details> mapping = getResourceMapping(baseWorkbook)
+            if (mapping) {
+                profileCount++
+                this.profile = profile
+                this.resourceName = resourceName
+                processProfile(mapping, worksheet, index)
+            }
+          } else println "WARN: failed to find resource $resfile"
+        }
+      }
+    }
+  }
 
   protected Map<String, Details> getResourceMapping(Workbook xlWorkbook) {
 
@@ -276,7 +331,7 @@ class FhirProfileScanner {
       if (binding) baseDetail.binding = binding
       mapping.put(name, baseDetail)
 
-      // special handling for [x] types
+      // special handling for multi-type (i.e. choice data type) with [x] suffix in the path name
       // expand type variations and add to mapping
       // e.g. handle Condition.onsetAge wrt Condition.onset[x]
       if (name.endsWith('[x]')) {
@@ -359,6 +414,10 @@ class FhirProfileScanner {
   Worksheet getProfileWorksheet(File file, Profile profile) {
     try {
       xlWorkbook = reader.getWorkbook(file.getAbsolutePath())
+      if (xlWorkbook == null) {
+        println "WARN: profile not found: " + file.getName()
+        return null
+      }
     } catch(SAXException e) {
       println "WARN: parse exception in " + file.getName()
       return null
@@ -368,7 +427,7 @@ class FhirProfileScanner {
     Worksheet worksheet = xlWorkbook.getWorksheet('Metadata')
     if (worksheet == null) {
       error('Metadata not found')
-      return
+      return null
     }
 
     String worksheetName = profile.worksheetName
@@ -378,7 +437,7 @@ class FhirProfileScanner {
     id, name, author.name, author.reference, code, description, status, date, published.structure, version, extension.uri, introduction, notes
     see source/templates/template-profile-spreadsheet.xml
     */
-    for (int i = 2; i < 14; i++) {
+    for (int i = 2; i < 24; i++) {
       // find rows with id and published.structure labels in first column
       Cell cell = worksheet.getCellAt(i, 1)
       String data = cell.getData$()
@@ -403,21 +462,21 @@ class FhirProfileScanner {
 
     if (!worksheetName) {
       error("missing published.structure")
-      return
+      return null
     }
 
     profile.worksheetName = worksheetName
 
     if (!profile.id) {
       error("missing id")
-      return
+      return null
     }
 
     // 2. use structure worksheet in profile
     worksheet = xlWorkbook.getWorksheet(worksheetName)
     if (worksheet == null) {
       error(worksheetName + " worksheet not found")
-      return
+      return null
     }
 
     return worksheet
