@@ -55,6 +55,7 @@ import java.util.regex.Matcher
  *  8/17/15 QICore profiles, valuesets, etc. are now published in "qicore" sub-folder
  *  8/21/15 Handle renaming of profile ids (e.g. condition-qicore-qicore-condition > qicore-condition)
  *  8/24/15 Cleanup valueset reference handling
+ *  9/28/15 Add card column back to class pages
  *
  */
 class QuickHtmlGenerator extends FhirSimpleBase {
@@ -534,10 +535,11 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       if (resourceName == path) return // skip resource def
 
       List<TypeRefComponent> types = elt.getType()
+      final TypeRefComponent typeDef = types ? types.get(0) : null
       if (resourceName == 'Resource') {
         if (path.endsWith(".meta")) return // skip
       } else {
-        if (path.endsWith('.id') && types && 'id' == types.get(0).getCode()) {
+        if (path.endsWith('.id') && typeDef && 'id' == typeDef.getCode()) {
           // ignore internal identifier
           return
         }
@@ -596,11 +598,11 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         println "WARN: multi-type not ending with [x]: $path"
 
       String pathName = path
-      final boolean isExtension = types && 'Extension' == types.get(0)?.getCode() || path.endsWith(".extension")
+      final boolean isExtension = (typeDef && 'Extension' == typeDef.getCode()) || path.endsWith(".extension")
       final boolean mustSupport = elt.getMustSupport()
 
       if (isExtension) {
-        if (!elt.hasName() && !types.get(0).hasProfile()) {
+        if (!elt.hasName() && !typeDef.hasProfile()) {
           // if not must support then don't care about names for extensions for now
           if (/*!path.endsWith('.modifierExtension') &&*/ mustSupport) {
             println "WARN: extension with no name or profile skipped: $path"
@@ -889,6 +891,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
  summary="Field Summary table, listing fields, and an explanation">
 <tr>
 <th class="colFirst" scope="col"><i class="fa fa-fw"></i><i class="fa fa-fw"></i><i class="fa fa-fw"></i>&nbsp;Field</th>
+<th class="colLast" scope="col" style="border-right-width: 0px">Card.</th>
 <th class="colLast" scope="col">Type and Description
 <span style="float: right"><a title="Legend for this format" href="../help.html"><img alt="doco" border="0" src="../resources/help16.png"/></a></span></th>
 </tr>
@@ -1019,7 +1022,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       def firstType = isExtension && type ? type.get(0) : null
       if (firstType && 'Extension' == firstType.getCode() && firstType.hasProfile()) {
         // if type is Extension then need to lookup its type in extension definition
-        final String extProfile = getProfile(type.get(0))
+        final String extProfile = getProfile(firstType)
         ExtensionDef extProfileDef = createExtensionDef(elt, extProfile) //new ExtensionDef(elt, extProfile)
 
         final String extProfileEltName = extProfileDef.extProfileEltName
@@ -1066,7 +1069,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             println "X -> $path"
             */
               path = display
-              // use display name ??
+              // REVIEW: use display name ??
             }
           }
 
@@ -1120,6 +1123,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                 extType = extElt.getType()
                 extTypeCode = getTypeCode(extType, false)
 
+                /*
                 //debug
                 // dump codeable extensions that have no bindings
                 if(!extElt.hasBinding() && !elt.hasBinding()) {
@@ -1135,6 +1139,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                   }
                 }
                 //debug
+                */
 
                 /*
                 //printf "CC: %-10s p=%s eltn=%s binding=%b%n", extTypeCode, path, extProfileEltName, extElt.hasBinding() // debug
@@ -1215,12 +1220,10 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
       // output HTML for each element or extension
 
-      /*
       String cardinality
       if (elt.hasMin() && elt.hasMax()) {
         cardinality = String.format("%d..%s", elt.getMin(), elt.getMax())
       } else cardinality = '' // if (snapElt && snapElt.hasMin() && snapElt.hasMax()) {
-      */
 
       html.tr(class: (count++ % 2 == 0 ? 'altColor' : 'rowColor')) {
         td(class: 'colFirst') {
@@ -1276,7 +1279,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
         } // td
 
-        /*
         td(class: 'colMid') {
           if (cardinality) {
             if (cardinality == '0..0')
@@ -1286,7 +1288,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             else html.code(cardinality)
           }
         } // td
-        */
 
         // List<TypeRefComponent> baseType
         td(class: 'colLast') {
