@@ -24,7 +24,8 @@ import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 
 /**
- * Created by Jason Mathews on 2/13/2015.
+ * @author Jason Mathews, MITRE
+ * Created 2/13/2015.
  *
  * Changes:
  *  3/06/15 remove Reference() prefix to type lists
@@ -64,7 +65,8 @@ class QuickHtmlGenerator extends FhirSimpleBase {
    * base URL where FHIR spec is published;
    * required to reference valuesets in element bindings
    */
-  static final String baseUrl = 'http://hl7-fhir.github.io/'
+  static final String baseUrl = 'http://hl7.org/fhir/DSTU2/'
+  //static final String baseUrl = 'http://hl7-fhir.github.io/'
   //static final String baseUrl = 'http://hl7.org/fhir/2015May/' // DSTU2 ballot snapshot
 
   static final String outDir = "html"
