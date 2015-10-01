@@ -22,7 +22,9 @@ import org.hl7.fhir.instance.model.Resource
 import org.hl7.fhir.instance.model.UriType
 
 /**
- * Base set of common FHIR helper methods
+ * Base set of common FHIR helper methods in a base class from which
+ * to implement a custom FHIR profile parser.
+ *
  * Created by Jason Mathews on 2/5/2015.
  */
 class FhirSimpleBase {
@@ -52,16 +54,21 @@ class FhirSimpleBase {
       //return profile.getType()
     }
     <StructureDefinition xmlns="http://hl7.org/fhir">
-     <id value="condition-daf-dafcondition"/>
-     <type value="constraint"/>
+     <id value="daf-condition"/>
+     <kind value="resource"/>
+     <constrainedType value="Condition"/>
      <abstract value="false"/>
      <base value="http://hl7.org/fhir/StructureDefinition/Condition"/>
      <snapshot>
       <element>
         <path value="Condition"/> ***
-        <name value="DAFCondition"/>
+        <name value="DAF-Condition"/>
         ...
     */
+    if (profile.hasConstrainedType()) {
+      // e.g. QICore-Procedure constrainedType=Procedure
+      return profile.getConstrainedType()
+    }
     List<ElementDefinition> snapshot = profile.hasSnapshot() && profile.getSnapshot().hasElement() ? profile.getSnapshot().getElement() : null
     if (snapshot) {
       // first element in snapshot should be resource name
