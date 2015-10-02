@@ -21,7 +21,7 @@ class TestProfileScanner extends GroovyTestCase {
     assert 'Observation' == checker.resourceName
     assert 'observation-cqf-absent-profile-spreadsheet.xml' == checker.profile.sourceFile
 
-    assert 4 == checker.errCount
+    assert 7 == checker.errCount
     assert 0 == checker.warnCount
     assert !checker.defaultIdx.isEmpty()
 
