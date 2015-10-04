@@ -149,6 +149,12 @@ class FhirSimpleBase {
   }
 
   @TypeChecked
+  static String getTypeCode(List<TypeRefComponent> list, boolean useRefPrefix) {
+    List<String> typeShortList = typeShortList(list, useRefPrefix);
+    return typeShortList.isEmpty() ? '' : typeShortList.size() < 1 ? typeShortList.get(0) : typeShortList.join(' | ')
+  }
+
+  @TypeChecked
   static String getProfile(TypeRefComponent type) {
     // NOTE: return type in getProfile() changed after May2015 from String to List<UriType> (fix)
     for (UriType item : type.getProfile()) {
@@ -156,12 +162,6 @@ class FhirSimpleBase {
       if (StringUtils.isNotBlank(val)) return val
     }
     return ''
-  }
-
-  @TypeChecked
-  static String getTypeCode(List<TypeRefComponent> list, boolean useRefPrefix) {
-    List<String> typeShortList = typeShortList(list, useRefPrefix);
-    return typeShortList.isEmpty() ? '' : typeShortList.size() < 1 ? typeShortList.get(0) : typeShortList.join(' | ')
   }
 
   /**
@@ -296,33 +296,16 @@ class FhirSimpleBase {
 
   @TypeChecked
   static String getReference(ElementDefinitionBindingComponent binding) {
-    String value = null
+    String value
     if (binding && binding.hasValueSet()) {
-      def ref
-      def valueSet = binding.getValueSet()
-      try {
-        if (valueSet instanceof org.hl7.fhir.instance.model.Reference) {
-          ref = binding.getValueSetReference()
-          if (ref && ref.hasReference()) {
-            //println "XX: string ref: " + ref.getClass().getName()
-            value = ref.getReference()
-            //printf "X: binding: %-22s %-20s %s%n", elt.getPath(), binding.getName(), ref
-          }
-        } else if (valueSet instanceof UriType) {
-          UriType uriType = binding.getValueSetUriType()
-          if (uriType && uriType.hasValue()) value = uriType.getValue()
-        } // else println "X: binding w/other valueset type: $valueSet"
-      } catch (Exception e) {
-        def s = e.getMessage()
-        if (!s) {
-          def cause = e.getCause()
-          if (cause) s = cause.getMessage()
-          if (!s) s = e.toString()
-        }
-        // e.printStackTrace(System.out)
-        // println "WARN: uritype=" + binding.getValueSetUriType()
-        println "WARN: bad ref: $s hasValueset=" + binding.hasValueSet() // + " " + binding.getValueSet()
-      }
+      if (binding.hasValueSetUriType()) {
+          def vs = binding.getValueSetUriType()
+          if (vs) value = vs.getValue()
+      } else if (binding.hasValueSetReference()) {
+          def vs = binding.getValueSetReference()
+          if (vs && vs.hasReference())
+            value = vs.getReference()
+      } // else println "X: binding w/other valueset type: $valueSet"
     }
     return value
   }
