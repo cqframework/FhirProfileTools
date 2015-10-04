@@ -21,14 +21,14 @@ class TestFhirSimpleBase extends FhirSimpleBase {
     // find element by its path in snapshot
     def elt = getElementByName(profile.getSnapshot().getElement(), 'ReferralRequest.status', null)
     assert elt != null && elt.getPath() == 'ReferralRequest.status'
-    def shortList = typeShortList(elt.getType(), false)
-    assert shortList.size() == 1 && shortList.get(0) == 'code'
+    def typeCode = getTypeCode(elt.getType(), false)
+    assert typeCode == 'code'
 
     // find element by its path in differential
     elt = getElementByName(profile.getDifferential().getElement(), 'ReferralRequest.requester', null)
     assert elt != null && elt.getMustSupport()
     // [Reference(qicore-practitioner | qicore-organization | qicore-patient
-    shortList = typeShortList(elt.getType())
+    def shortList = typeShortList(elt.getType())
     assert shortList.size() == 1 && shortList.get(0).startsWith('Reference(')
     shortList = typeShortList(elt.getType(), false)
     assert shortList.size() == 1 && shortList.get(0) == 'qicore-practitioner | qicore-organization | qicore-patient'
@@ -82,5 +82,4 @@ class TestFhirSimpleBase extends FhirSimpleBase {
       }
     })
   }
-
 }
