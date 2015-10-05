@@ -1,5 +1,5 @@
 /*
-        Copyright (C) 2014 The MITRE Corporation. All Rights Reserved.
+ Copyright (C) 2014 The MITRE Corporation. All Rights Reserved.
 
  The program is provided "as is" without any warranty express or implied, including
  the warranty of non-infringement and the implied warranties of merchantability and
@@ -25,7 +25,8 @@ import org.hl7.fhir.instance.model.UriType
  * Base set of common FHIR helper methods in a base class from which
  * to implement a custom FHIR profile parser.
  *
- * Created by Jason Mathews on 2/5/2015.
+ * @author Jason Mathews, MITRE Corporation
+ * Created on 2/5/2015.
  */
 class FhirSimpleBase {
 
@@ -138,6 +139,8 @@ class FhirSimpleBase {
           if (code == '*') code = 'Any'
           strList.add(code)
         }
+      // NOTE: code is required in Type element so should never have case
+      // where code is not present unless profile is invalid.
       } else if (type.hasProfile()) {
         def profile = getProfile(type) // .getProfile()
         if (profile.startsWith('http://hl7.org/fhir/StructureDefinition/'))
@@ -404,7 +407,7 @@ class FhirSimpleBase {
           urlpath = urlpath.substring(ind + 1).toLowerCase()
           ind = urlpath.indexOf('#')
           if (ind > 0) {
-            // e.g. extension-adverseevent-qicore-cause#item.xml
+            // e.g. extension-adverseevent-qicore-cause#item
             println "XX: trim ext2 $urlpath"
             urlpath = urlpath.substring(0, ind)
           }
