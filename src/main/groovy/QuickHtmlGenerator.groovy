@@ -146,8 +146,8 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           'instant'            : 'DateTime',
           'integer'            : 'Integer',
           'string'             : 'String',
-          'Period'             : 'Interval',
-          'Range'              : 'Interval',
+          'Period'             : 'interval<DateTime>',
+          'Range'              : 'interval<Quantity>',
           'time'               : 'Time',
           'markdown'           : 'String',
           //'Quantity'           : 'Quantity',
@@ -304,9 +304,9 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     }
     //? classes.add(className) // use profiles.keySet()
     profiles.put(className, profile)
+    // add URI mapping to class name;
+    // e.g. http://hl7.org/fhir/StructureDefinition/patient-qicore-patient => Patient
     if (profile.hasUrl()) uriToClassName.put(profile.getUrl(), className)
-    //? http://hl7.org/fhir/StructureDefinition/patient-qicore-qicore-patient,
-    //? http://hl7.org/fhir/StructureDefinition/patient-qicore-patient
     
 	qicoreProfiles.add(className) // keep track of QICore profiles	
 	//qicoreProfiles.add(getResourceName(profile)) // keep track of QICore profiled resources    
