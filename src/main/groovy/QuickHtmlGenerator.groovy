@@ -57,6 +57,7 @@ import java.util.regex.Matcher
  *  8/21/15 Handle renaming of profile ids (e.g. condition-qicore-qicore-condition > qicore-condition)
  *  8/24/15 Cleanup valueset reference handling
  *  9/28/15 Add card column back to class pages
+ * 10/01/15 fix removing dups when mapping to CQL types
  *
  */
 class QuickHtmlGenerator extends FhirSimpleBase {
@@ -191,6 +192,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             //'Duration',
             //'HumanName',
             //'Identifier',
+            "id",
             'instant',
             'integer',
             'markdown',
@@ -1397,11 +1399,10 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                     ElementDefinition extElt, boolean isExtension,
                     List<TypeRefComponent> type, ElementDefinitionBindingComponent binding,
                     String desc) {
+
     StringBuilder sb = new StringBuilder()
-
-    //boolean checkElementType = false
-
     final ElementDefinition elt = edh.self
+    Set<String> typeSet = new HashSet<>()
 
     if (type) {
       //println "check type types="+type.size()
@@ -1410,167 +1411,22 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         String code = it.getCode()
         // println "X: type code=$code"
         if (code == 'Reference' && it.hasProfile()) {
-          String profileUrl = getProfile(it)
-          //if (!it.hasProfile()) println "X: check: no profile in type???"
-          boolean hasLink = false
-          String link = null
-          def typeClassName = uriToClassName.get(profileUrl)
-          if (typeClassName) {
-            code = typeClassName
-            hasLink = true
-          } else if (profileUrl) {
-
-            if (resourceName == TARGET_RESOURCE) println "X: profileUrl=$profileUrl" // debug
-            if (profileUrl.contains("qicore-")) println "ERROR: bad profile ref $profileUrl in " + elt.getPath()
-
-            // ??? getClassName(profileUrl)
-            // examples:
-            // http://hl7.org/fhir/StructureDefinition/Any
-            // http://hl7.org/fhir/StructureDefinition/patient-qicore-qicore-patient
-            // http://hl7.org/fhir/StructureDefinition/specimen-volumeFuzzy"
-            // etc.
-            int ind = profileUrl.lastIndexOf('/')
-            if (ind > 0) {
-              code = profileUrl.substring(ind + 1)
-              println "X: type class=$code"
-              // reference to domaon resource where qicore profile exists
-              // e.g. http://hl7.org/fhir/StructureDefinition/Medication in Other.extension
-              if (profiles.containsKey(code)) {
-                // printf "CC: %s %s name=%s%n", profileUrl, elt.getPath(), elt.getName()
-                hasLink = true
-              } // else ???
-              else if (code != 'Resource' && code != 'any') {
-                //if (resourceName == TARGET_RESOURCE) println "X: name ($code) not found in profiles: tc=$typeClassName"
-                // e.g. Group, Appointment, Media, etc. resource references with no associated QICore profile
-                /*
-                if (coreResources.contains(code)) {
-                  println "INFO: name ($code) not found in profiles: use FHIR resource page"
-                  def resFile = new File(dir, code.toLowerCase() + ".html")
-                  if (resFile.exists()) {
-                    link = baseUrl + "/" + resFile.getName()
-                    hasLink = true
-                  } else println "ERROR: no res file: $code " + resFile.getName()
-                }
-                else
-                */
-                // TODO resource XXX
-                def baseRef = code.toLowerCase(Locale.ROOT) + '.html'
-                if (resources.containsKey(code)) {
-                  println "INFO: name ($code) is base resource in " + elt.getPath()
-                  //?external links disabled
-                  //hasLink = true
-                  //link = baseUrl + baseRef
-                } else {
-                  File file = new File(publishDir, baseRef)
-                  if (file.exists()) {
-                    // these should have been picked up in pre-scan of resource types
-                    println "INFO: name ($code) is direct ref in " + elt.getPath()
-                    //?external links disabled
-                    //?hasLink = true
-                    //?link = baseUrl + baseRef
-                  } else println "WARN: name ($code) not found in profiles"
-                }
-              }
-            } else {
-              code = profileUrl
-              println "CC: check $code"
-            }
-          }
-          if (sb.length() != 0) sb.append(' | ')
-          if (hasLink) {
-            // if (code == 'Condition') printf "C: %s Condition%n", elt.getPath() //debug
-            if (link) sb.append("<a href='${link}'>${code}</a>")
-            else sb.append("<a href='${code}.html'>${code}</a>")
-          } else {
-            sb.append(code)
-          }
+          dumpReferenceType(elt, it, code, sb)
         } else {
-          if (sb.length() != 0) sb.append(' | ')
-          // Encounter.hospitalization.dischargeDiagnosis  type=Resource
-          // if (code == 'Any') println "XX: any="+edh.path
-          if (code == 'Element' || code == 'BackboneElement' || code == '*') {
-            //BackboneElement Encounter.hospitalization
-            //BackboneElement Encounter.location
-            //BackboneElement Encounter.participant
-            //BackboneElement Encounter.statusHistory
-            if (edh.getChildren().isEmpty()) {
-              typeCheck.add(code) //debug
-              sb.append(code)
-              // TODO: not handled right Basic.extension name=AdverseEvent-cause [Extension/code=*]
-              println "check: $code " + edh.path
-            } else {
-              // TODO: new sub-class
-              println "X: Element subclass for " + edh.path
-              // Basic.cause                            [Extension/code=*]
-              // Encounter.relatedCondition             [code=Element]
-              // Goal.target                            [code=Element]
-              // Patient.extension name=citizenship     [Extension/code=*]
-              // Patient.extension name=clinicalTrial   [Extension/code=*]
-              // Patient.extension name=nationality     [Extension/code=*]
-              String name = edh.path
-              int ind = name.lastIndexOf('.')
-              if (ind > 0) name = name.substring(ind+1)
-              name = StringUtils.capitalize(name)
-              sb.append("<a href='todo.html'>$name</a> (TBD)")
-              // TODO: create sub-class for this element
-            }
-          }
-          else if (primTypes.contains(code)) {
-            String cqlType = cqlTypeMap.get(code)
-            sb.append(cqlType ?: code)
-            if (!cqlType) typeCheck.add(code)
-            //sb.append("<a href=\"" + code + ".html\">" + code + "</a>")
-            // http://hl7-fhir.github.io/datatypes.html#string
-            // sb.append("<a href='${baseUrl}datatypes.html#${code}'>${code}</a>")
-            /*
-            if ('Coding' == code && binding == null) {
-              String name = elt.getPath()
-              if (elt.hasName()) {
-                name = elt.getName()
-                if (!name.startsWith(resourceName)) name = resourceName + "." + name
-              }
-              printf "XX: need binding?: %s%n", name
-            }
-            */
-          //} //else if (code == 'BackboneElement') {
-            //checkElementType = true
-            //if (elt.hasMax() && elt.getMax() == '*') println "listtype BackboneElement " + edh.path
-          }
-          else if (complexTypes.contains(code)) {
-            // add link to complex type class
-            sb.append("<a href='${code}.html'>${code}</a>")
-          } else {
-            typeCheck.add(code)
-            /*
-            if ('*' == code) {
-              code = 'Element' // appears to be Element in all cases; e.g. Patient.extension.citizenship
-              println "XX: type=* for " + elt.getPath() + " name=" + elt.getName() //debug
-
-              // sb.append('Element') // any Reference or any Element ??
-            }
-            */
-            //else {
-            /*
-            File file = new File(publishDir, code.toLowerCase(Locale.ROOT) + ".html") // e.g. element.html
-            if (file.exists()) {
-              //?external links disabled
-              //sb.append("<a href='${baseUrl}${file.getName()}'>${code}</a>")
-              sb.append(code)
-              println "22: href: $code in" + edh.path // BackboneElement
-            } else {
-            */
-            // println "33: $code " + edh.path
-            if (typeCodes.add(code)) println "X: added new type: $code in " + elt.getPath() //debug
-            sb.append(code)
-            // }
-            //}
-          }
+		  // primitive or complex data type or Element
+          def(String typecode, String appendable) = dumpTypeCode(edh, code)
+		  if (typeSet.add(typecode)) {
+			  if (sb.length() != 0) sb.append(' | ')
+			  sb.append(appendable)
+		  } else {
+			// don't add separator if have duplicate code type
+			println "WARN: duplicate type $typecode"
+		  }
         }
       } // each type
 
       if (sb.length() == 0) {
         println "XX: check unk type " + elt.getPath()
-        // checkElementType = true
       } else {
         html.code {
           boolean listType = elt.hasMax() && elt.getMax() == '*'
@@ -1618,19 +1474,19 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       // no type -> assume Element??
       // if (edh.getChildren().isEmpty()) println "11: empty type no children: " + edh.path // e.g. Patient.animal
       if (edh.getChildren().isEmpty() && !specialCaseElements.containsKey(edh.path)) {
+		// TODO/REVIEW any other special cases and remapping needed ??
         html.mkp.yieldUnescaped("Element") // ??
         println "WARN: check no type " + edh.path
         /*
-        DiagnosticOrder.item.event ???
-        Observation.component.referenceRange
-        Questionnaire.group.group
-        Questionnaire.group.question.group
-        QuestionnaireAnswers.group.group
-        QuestionnaireAnswers.group.question.group
-        ValueSet.compose.exclude
-        ValueSet.compose.include.concept.designation
-        ValueSet.define.concept.concept
-        ValueSet.expansion.contains.contains
+		Observation.component.referenceRange
+		Questionnaire.group.group
+		Questionnaire.group.question.group
+		QuestionnaireResponse.group.group
+		QuestionnaireResponse.group.question.answer.group
+		ValueSet.codeSystem.concept.concept
+		ValueSet.compose.exclude
+		ValueSet.compose.include.concept.designation
+		ValueSet.expansion.contains.contains
          */
       } else {
         // if (checkElementType) println "check type for " + edh.path
@@ -1658,7 +1514,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       // Encounter.location, Encounter.participant, Encounter.statusHistory, FamilyHistory.relation, FamilyHistory.relation.condition
     }
 
-    //StringBuilder sb = new StringBuilder()
     if (binding) {
       if (binding.hasValueSet()) {
          String ref
@@ -1887,6 +1742,166 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       } // blockquote
     }
   } // end dumpTypeDesc
+
+  @TypeChecked
+  void dumpReferenceType(ElementDefinition elt, TypeRefComponent type, String code, StringBuilder sb) {
+    String profileUrl = getProfile(type)
+    //if (!it.hasProfile()) println "X: check: no profile in type???"
+    boolean hasLink = false
+    String link = null
+    def typeClassName = uriToClassName.get(profileUrl)
+    if (typeClassName) {
+      code = typeClassName
+      hasLink = true
+    } else if (profileUrl) {
+
+      //if (resourceName == TARGET_RESOURCE) println "X: profileUrl=$profileUrl" // debug
+      if (profileUrl.contains("qicore-")) println "ERROR: bad profile ref $profileUrl in " + elt.getPath()
+
+      // ??? getClassName(profileUrl)
+      // examples:
+      // http://hl7.org/fhir/StructureDefinition/Resource
+      // http://hl7.org/fhir/StructureDefinition/patient-qicore-qicore-patient
+      // http://hl7.org/fhir/StructureDefinition/specimen-volumeFuzzy"
+      // etc.
+      int ind = profileUrl.lastIndexOf('/')
+      if (ind > 0) {
+        code = profileUrl.substring(ind + 1)
+        println "X: type class=$code"
+        // reference to domain resource where qicore profile exists
+        // e.g. http://hl7.org/fhir/StructureDefinition/Medication in Other.extension
+        if (profiles.containsKey(code)) {
+          // printf "CC: %s %s name=%s%n", profileUrl, elt.getPath(), elt.getName()
+          hasLink = true
+        } // else ???
+        else if (code != 'Resource' && code != 'any') {
+          //if (resourceName == TARGET_RESOURCE) println "X: name ($code) not found in profiles: tc=$typeClassName"
+          // e.g. Group, Appointment, Media, etc. resource references with no associated QICore profile
+          /*
+          if (coreResources.contains(code)) {
+            println "INFO: name ($code) not found in profiles: use FHIR resource page"
+            def resFile = new File(dir, code.toLowerCase() + ".html")
+            if (resFile.exists()) {
+              link = baseUrl + "/" + resFile.getName()
+              hasLink = true
+            } else println "ERROR: no res file: $code " + resFile.getName()
+          }
+          else
+          */
+          // TODO resource XXX
+          def baseRef = code.toLowerCase(Locale.ROOT) + '.html'
+          if (resources.containsKey(code)) {
+            println "INFO: name ($code) is base resource in " + elt.getPath()
+            //?external links disabled
+            //hasLink = true
+            //link = baseUrl + baseRef
+          } else {
+            File file = new File(publishDir, baseRef)
+            if (file.exists()) {
+              // these should have been picked up in pre-scan of resource types
+              println "INFO: name ($code) is direct ref in " + elt.getPath()
+              //?external links disabled
+              //?hasLink = true
+              //?link = baseUrl + baseRef
+            } else println "WARN: name ($code) not found in profiles"
+          }
+        }
+      } else {
+        code = profileUrl
+        println "CC: check $code" // no matches
+      }
+    }
+    //else println "no profileURL: $code " + elt.getPath() // debug no matches
+    if (sb.length() != 0) sb.append(' | ')
+    if (hasLink) {
+      // if (code == 'Condition') printf "C: %s Condition%n", elt.getPath() //debug
+      if (link) sb.append("<a href='${link}'>${code}</a>")
+      else sb.append("<a href='${code}.html'>${code}</a>")
+    } else {
+      sb.append(code)
+    }
+  }
+
+  /**
+   * Normalize type code and remap if applicable.
+   * Element type is replaced with a class (title-case) of the field name;
+   * e.g., Encounter.hospitalization is changed to type Hospitalization which maps
+   * to a unique and fully qualified Encounter.Hospitalization class.
+   */
+  @TypeChecked
+  def dumpTypeCode(ElementDefinitionHolder edh, String code) {
+    // Encounter.hospitalization.dischargeDiagnosis  type=Resource
+    // if (code == 'Any') println "XX: any="+edh.path // no matches found
+    String appendable = code // default
+	//typeSet.add(code)
+    if (code == 'Element' || code == 'BackboneElement' || code == '*') {
+      //BackboneElement Encounter.hospitalization
+      //BackboneElement Encounter.location
+      //BackboneElement Encounter.participant
+      //BackboneElement Encounter.statusHistory
+      if (edh.getChildren().isEmpty()) {
+        // TODO: not handled right Basic.extension name=AdverseEvent-cause [Extension/code=*]
+        typeCheck.add(code) //debug
+        //appendable = code
+        println "XX: check: $code " + edh.path // Basic.cause
+      } else {
+        // TODO: new sub-class
+        printf "X: Element subclass for %s [%s]%n", edh.path, code
+        // AllergyIntolerance.reaction            [code=BackboneElement] => Reaction
+        // Encounter.relatedCondition             [code=Element] => RelatedCondition
+        // Encounter.statusHistory				  [code=BackboneElement]
+        // Goal.outcome							  [code=BackboneElement]
+        // Goal.target                            [code=Element]
+        // Patient.extension name=clinicalTrial   [Extension/code=Element]
+        // Patient.extension name=nationality     [Extension/code=Element]
+        // etc.
+        String name = edh.path
+        int ind = name.lastIndexOf('.')
+        if (ind > 0) name = name.substring(ind+1)
+        name = StringUtils.capitalize(name)
+        appendable = "<a href='todo.html'>$name</a> (TBD)"
+        // TODO: create sub-class for this element
+      }
+    }
+    else if (primTypes.contains(code)) {
+      String cqlType = cqlTypeMap.get(code)
+      if (cqlType) {
+        // TODO: remove dups if mapping to same code; e.g. instant, date, dateTime all map to dateTime
+        // so if type list has { instant | date | dateTime } => { dateTime | dateTime | dateTime }
+		code = cqlType
+        appendable = cqlType.contains('<') ? htmlEscape(cqlType) : cqlType // e.g. interval<DateTime>
+      } else {
+        // primitive type that has no cql mapping
+        // appendable = code
+        typeCheck.add(code) // base64Binary, code, oid, unsignedInt, etc.
+        // println "primType: $code " + edh.path
+      }
+      //sb.append("<a href=\"" + code + ".html\">" + code + "</a>")
+      // http://hl7-fhir.github.io/datatypes.html#string
+      // sb.append("<a href='${baseUrl}datatypes.html#${code}'>${code}</a>")
+      /*
+      if ('Coding' == code && binding == null) {
+        String name = elt.getPath()
+        if (elt.hasName()) {
+          name = elt.getName()
+          if (!name.startsWith(resourceName)) name = resourceName + "." + name
+        }
+        printf "XX: need binding?: %s%n", name
+      }
+      */      
+    }
+    else if (complexTypes.contains(code)) {
+      // add link to complex type class
+      appendable = "<a href='${code}.html'>${code}</a>"
+    } else {
+      if (code == 'Extension') println "WARN: P0: type=Extension for " + edh.path
+	  // default: appendable = code
+      typeCheck.add(code)  
+      //println "other: $code " + edh.path // no matches
+	  if (typeCodes.add(code)) println "X: added new type: $code in " + edh.path //debug (no matches)
+    }
+    return [ code, appendable ]
+  }
 
 // ---------------------------------------------------------
 // create index-files page
