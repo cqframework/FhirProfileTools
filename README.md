@@ -81,10 +81,15 @@ Now to run the validator with config.dat, run `validate` task in gradle:
 
      gradlew validate
 	 
-To generate HTML javadoc-like documentation for the profiles as classes run `runHtml` task:
+To generate HTML javadoc-like documentation for FHIR profiles as classes run `runHtml` task:
 
      gradlew runHtml
-	 
+
+The [QUICK model generator](QuickHtmlGenerator.md) creates custom java-like documentation QICore FHIR profiles
+using `runQuickHtml` task:
+
+     gradlew runQuickHtml
+
 # Dependencies
 
 The scripts use the [Java to SpreadsheetML](http://sourceforge.net/projects/xelem/)
