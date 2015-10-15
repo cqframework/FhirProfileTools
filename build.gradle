@@ -20,6 +20,11 @@ task validate (dependsOn: 'compileGroovy', type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
 }
 
+task runQuickHtml(dependsOn: 'compileGroovy', type: JavaExec) {
+    main = 'QuickGeneratorRunner'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
 dependencies {	
  compile group: 'commons-io', name: 'commons-io', version: '1.4'
  compile group: 'commons-lang', name: 'commons-lang', version: '2.5'
