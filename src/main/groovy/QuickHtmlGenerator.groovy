@@ -1,4 +1,4 @@
-// $Id:  QuickHtmlGenerator.groovy,v 1.12 2015/07/28 14:30:40 mathews Exp $
+// $Id:  QuickHtmlGenerator.groovy,v 1.13 2015/09/29 16:02:10 mathews Exp $
 /*
         Copyright (C) 2014 The MITRE Corporation. All Rights Reserved.
 
@@ -58,6 +58,7 @@ import java.util.regex.Matcher
  *  8/24/15 Cleanup valueset reference handling
  *  9/28/15 Add card column back to class pages
  * 10/01/15 fix removing dups when mapping to CQL types
+ * 10/02/15 Suppress complex types from appearing in Direct Known Subclasses in resource page
  *
  */
 class QuickHtmlGenerator extends FhirSimpleBase {
@@ -177,7 +178,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
     // e.g. http://hl7-fhir.github.io/datatypes.html#CodeableConcept
     primTypes.addAll([
-            //'Address',
+            //'Address', //moved to complex list
             //'Age',
             //'Attachment',
             'base64Binary',
@@ -246,6 +247,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
   @TypeChecked
   void generateHtml() {
+    // must create detailed pages first via discovery of all possible classes from the profiles and referenced types
     createDetailPages()
     createAllClassesFrame()
     createOverviewSummary()
@@ -298,6 +300,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     println()
     println "-" * 40
     println id
+    // normalize id to classname; e.g. qicore-allergyintolerance => AllergyIntolerance
     final String className = getClassName(id)
     if (profiles.containsKey(className)) {
       // possibly profile id changed and publish folder has both new and old versions
@@ -321,7 +324,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
   void createDetailPages() {
 
     println "=" * 40
-    println "profiles: " + uriToClassName.keySet().join("\n\t")
+    println "profiles: " + uriToClassName.keySet().join('\n\t')
     /*
     uriToClassName.keySet().each {
       int ind = it.indexOf("qicore")
@@ -334,11 +337,11 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
     // TODO - prescan all profiles and all element types. if reference classes in differential not present (e.g. RelatedPerson)
     // e.g. AdverseEvent.cause.item ref=DiagnosticStudy
-    //? if (!devMode)  // disabled for now
       createOtherReferences()
 
     try {
 
+	  // for each profiled "class" generated class-level HTML page
       profiles.each { String className, StructureDefinition profile ->
         generateHtml(className, profile)
       }
@@ -561,7 +564,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       println "\n path : " + path // debug
 
       /*
-      // list all code-typed elements
+      // dump list all code-typed elements
       if (qicoreProfiles.contains(className) && elt.hasType()) {
         for (TypeRefComponent type : types) {
           String code = type.getCode()?.toLowerCase()
@@ -589,7 +592,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       else*/ if (qicoreProfiles.contains(className) && !elt.hasBinding() && elt.hasType()) {
         for (TypeRefComponent type : types) {
           String code = type.getCode()?.toLowerCase()
-          if (code && code.startsWith("cod")) {
+          if (code && code.startsWith('cod')) {
             // Coding, code, CodeableConcept, etc.
             printf "AC: %s %s%n", elt.getPath(), type.getCode()
             break
@@ -629,14 +632,18 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           if ((path != resourceName + '.extension' && path != resourceName + '.modifierExtension') || name.contains('.')) {
             def pathNormal = path
             if (pathNormal.startsWith(resourceNamePrefix)) pathNormal = pathNormal.substring(resourceNamePrefix.length())
+            String namePart = name
+            if (namePart.startsWith(resourceNamePrefix)) namePart = namePart.substring(resourceNamePrefix.length())
             // path (with resource name prefix stripped) / name
             // extension / reasonNotPerformed
             // extension.extension / citizenship.period
             // relation.condition.extension / relation.condition.abatement
             String[] pathParts = pathNormal.split('\\.')
-            String[] nameParts = name.split('\\.')
+            String[] nameParts = namePart.split('\\.')
             if (pathParts.length != nameParts.length) {
-              println "Z:ERROR: $resourceName: name mismatch to path\nZ:$pathNormal\nZ: $name\nZ:--" // bad '.' count
+              println "Z:WARN: $resourceName: name $pathName: element name mismatch count:\nZ:$pathNormal\nZ:$name\nZ:--" // bad '.' count
+              // happens with extension to Element and referring to sub-element of that structure
+              // e.g. path=Condition.extension name=dueTo.code
               // path : Basic.modifierExtension
             } else {
               for (int i = 0; i < pathParts.length; i++) {
@@ -687,6 +694,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
       if (!pathSet.add(pathName)) {
         // duplicate element: e.g. ProcedureRequest.priority
+        // duplicate? pathName=path=Condition.extension name=dueTo.detail
         if ((isExtension || path.contains('.extension.')) && !elt.hasName()) {
           // not errors: e.g., Patient.extension.value[x], Patient.extension.id
           // println "INFO-ERR: skip ext $pathName"
@@ -745,7 +753,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
         mkp.yieldUnescaped('\n<!-- ======== START OF CLASS DATA ======== -->')
         div(class: 'header') {
-          //String name = getClassName(id)
           h2(title: "Class $className", class: 'title') {
             mkp.yield(className)
           }
@@ -803,9 +810,10 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                     dl {
                       dt('Direct Known Subclasses:')
                       dd {
-                        profiles.keySet().eachWithIndex { String name, int idx ->
-                          if (name != 'Resource') {
-                            if (idx) mkp.yield(', ')
+                        int count = 0
+                        profiles.keySet().each { String name ->
+                          if (name != 'Resource' && !complexTypes.contains(name)) {
+                            if (count++) mkp.yield(', ')
                             a(href: "${name}.html", name)
                           }
                         }
@@ -2084,7 +2092,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             ul(title: "Classes") {
               otherClasses.each { className ->
                 li {
-                  // String className = getClassName(id)
                   a(href: "pages/${className}.html", className)
                 }
               }
@@ -2177,15 +2184,16 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                   println "X: other resource: $className" // e.g. VisionPrescription
                   // return  // skip non-qicore profiled resources on overview
                 }
-                String outName = className
                 tr(class: idx++ % 2 ? 'rowColor' : 'altColor') {
                   td(class: 'colFirst') {
-                    a(href: "pages/${className}.html", getClassName(outName))
+                    a(href: "pages/${className}.html", className)
                   } // td
                   td(class: 'colLast') {
                     //def profile = profiles.get(className)
                     if (profile) {
                       def desc = profile.getSnapshot().getElement().get(0).getShort()
+                      // NOTE Basic resource is used for base class of new classes so description must
+                      // be defined as the profile description.
                       if (!desc || getResourceName(profile) == 'Basic') desc = profile.getDescription()
                       //def desc = profile.getSnapshot().getElement().get(0).getDefinition()
                       // def desc = profile.getDescription()
@@ -2279,22 +2287,27 @@ class QuickHtmlGenerator extends FhirSimpleBase {
   @TypeChecked
   private static int processElementsIntoTree(ElementDefinitionHolder edh, int i, List<ElementDefinitionHolder> list) {
     String path = edh.path
-    final String prefix = path + ".";
+    final String prefix = path + "."
     while (i < list.size() && list.get(i).path.startsWith(prefix)) {
       ElementDefinitionHolder child = list.get(i)
-      edh.getChildren().add(child);
-      i = processElementsIntoTree(child, i+1, list);
+      edh.getChildren().add(child)
+      i = processElementsIntoTree(child, i+1, list)
     }
-    return i;
+    return i
   }
 
+  /**
+   * normalize class name from its id; e.g. qicore-procedurerequest => ProcedureRequest
+   * @param id
+   * @return normalized class name
+   */
   @TypeChecked
   static String getClassName(String id) {
     // TODO: revisit if class naming changes; e.g. use snapshot.elements(0).getName() to preserve camel-case name
     //? if (!id) return id
     String name = id
     if (name.startsWith('qicore-')) {
-      // qicore-encounter => Encounter
+      // remap qicore-encounter => Encounter
       // make adverseevent-qicore-qicore-adverseevent into AdverseEvent
       // and diagnosticorder-qicore-diagnosticorder into DiagnosticOrder
       // use name of first element in snapshot if consistent in profiles or just use lookup table?
