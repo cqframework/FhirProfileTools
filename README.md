@@ -26,16 +26,17 @@ The FhirProfileValidator can identify the following situations:
    rules.dat file so it will not be flagged as an error.
  * mismatch in type definition between base resource and profile for correponding elements.
    Sometimes the type of base profile changes (E.g. dateTime -> date) and in most cases
-   want the profile to match the same type.
+   want the profile to match the same type in base resource.
  * if profile misses any elements that are defined in the base resource which could have
    been added or renamed after the profile was created.
    
 FhirSimpleBase is a base class with helper methods for parsing the published FHIR structure
 definition XML files (aka profiles). It uses the FHIR Java reference API (tools.jar) that
-is published alongwith the FHIR documentation.
+is published along with the FHIR documentation.
 
 Additional Documentation:
 * [Customizing Validation Rules](customRules.md)
+* [QUICK model generator](QuickHtmlGenerator.md)
 
 # How to build
 
@@ -67,9 +68,11 @@ of project that points to the location of resources and profiles. This normally
 would be the build/source folder from the fhir-svn repository.
 
 Can use `config-example.dat` as a template and copy that to config.dat then edit
-the following 3 properties:
+the following 4 properties:
  * **fhirSourceDir** - directory of FHIR-svn repo build/source folder
    from which the publish tools build the FHIR web site from
+ * **fhirPublishDir** - directory of the entire published FHIR specification (aka FHIR website)
+   which includes all FHIR profiles, extensions, valuesets, QICore implementation guide, etc.
  * **profilePattern** - regular expression for file name matching used to include
    only those profiles of interest in processing and skip all others.
  * **profileRules** - profile rules and explicit exceptions (e.g. cqf-rules.dat).
