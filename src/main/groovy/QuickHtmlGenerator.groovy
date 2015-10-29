@@ -1523,210 +1523,8 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     }
 
     if (binding) {
-      if (binding.hasValueSet()) {
-         String ref
-        if (binding.hasValueSetUriType()) {
-          def vs = binding.getValueSetUriType()
-          if (vs) ref = vs.getValue()
-        } else if (binding.hasValueSetReference()) {
-          def vs = binding.getValueSetReference()
-          if (vs && vs.hasReference()) {
-            //println "XX: string ref: " + ref.getClass().getName()
-            ref = vs.getReference()
-            // NOTE: hasBinding method removed as of July 2015
-            //if (binding.hasName())
-            //printf "X: binding: %-22s %-20s %s%n", elt.getPath(), binding.getName(), ref
-            //else
-            printf "X: binding: %-27s %s%n", elt.getPath(), ref //.replace("/ValueSet/","/vs/") // debug
-          }
-        } else println "X: binding w/other valueset type: " + binding.getValueSet()
-
-        if (ref) {
-          String href, bindingName = '', bindingDef
-          if (binding.hasDescription()) bindingDef = StringUtils.trimToNull(binding.getDescription())
-          // NOTE: new v3 URL as of 13-Jul-2015 http://hl7.org/fhir/ValueSet/v3-ActReason
-          if (ref =~ /^http:\/\/hl7.org\/fhir\/ValueSet\//) {
-          //if (ref =~ /^http:\/\/hl7.org\/fhir\/(v[23]\/)?vs\//) { .// July-13 Valueset URLs changed /vs/ => /Valueset/
-            // also http://hl7-fhir.github.io/v3/vs/ServiceDeliveryLocationRoleType/index.html
-            href = ref.substring(ref.lastIndexOf('/') + 1)
-            /*
-            X: other binding name: href=daf-problem               name=QICoreProblemCode
-            X: other binding name: href=daf-encounter-type        name=DAFEncounterType
-            X: other binding name: href=daf-encounter-reason      name=QICoreEncounterReasonValueset
-            X: other binding name: href=daf-race                  name=QICoreRace
-            X: other binding name: href=daf-ethnicity             name=QICoreEthnicity
-            X: other binding name: href=daf-procedure-type        name=qicore-procedure-type
-
-            ref=http://hl7.org/fhir/vs/daf-race
-            target=valueset-daf-race.html
-
-            name=QICoreImportance
-            ref=http://hl7.org/fhir/vs/qicore-importance
-            target=valueset-qicore-importance.html
-            */
-
-            File file = new File(publishDir, 'valueset-' + href + ".html")
-            if (file.exists()) {
-              //if (href.startsWith('daf-') || href.contains('qicore-')) {
-              href = baseUrl + file.getName()
-              // sb.append(String.format('Binding: <a href="%s%s">%s</a>',
-              // baseUrl, file.getName(), binding.getName()))
-            } else {
-
-              if (file.exists()) {
-                //if (href.startsWith('daf-') || href.contains('qicore-')) {
-                println "X: DIRECT URI $href"
-                href = baseUrl + file.getName()
-                //sb.append(String.format('Binding: <a href="%s%s">%s</a>',
-                //baseUrl, file.getName(), binding.getName()))
-              } else {
-                String baseName
-                if (file.getName().contains("daf-")) {
-                  baseName = "daf/" + file.getName()
-                } else if (file.getName().contains("uslab-")) {
-                  baseName = "uslab/" + file.getName()
-                } else {
-                  baseName = "qicore/" + file.getName()
-                }
-                file = new File(publishDir, baseName)
-                if (file.exists()) {
-                  href = baseUrl + baseName
-                  println "X: DIRECT URI $href"
-                }
-              }
-
-              if (!file.exists()) {
-                file = new File(publishDir, href + ".html")
-                // printf "X: other binding name: href=%-25s name=%s%n", file.getName(), binding.getName() // debug
-                // NOTE: new v3 URL as of 13-Jul-2015 http://hl7.org/fhir/ValueSet/v3-ActReason
-                // which is mapped to folder: publish/v3/ActReason/ { index.html, v3-ActReason.xml }
-                // printf "V: href=%s ref=%s%n", href, ref//debug
-                //def name = ref.substring('http://hl7.org/fhir/'.length())
-                if (href.startsWith('v2-') || href.startsWith('v3-')) {
-                  // other binding v3/vs/ActReason => \v3\ActReason\index.html
-                  def basePart = href.substring(3) + "/index.html"
-                  File baseDir = new File(publishDir, href.substring(0,2))
-                  file = new File(baseDir, basePart)
-                  if (file.exists()) {
-                    //href=v3-ActReason base=ActReason/index.html
-                    //other good binding1 ..\build\publish\v3\ActReason\index.html AllergyIntolerance.extension http://hl7-fhir.github.io/ActReasonX/ActReason/index.html
-                    println "V: href=$href base=$basePart"
-                    href = baseUrl + href.substring(0,2) + '/' +  basePart
-                    printf "V: other good binding1 %s %s %s%nV:%n", file.getPath(), elt.getPath(), href
-                  } else {
-                    // alternate path
-                    // http://hl7.org/fhir/ValueSet/v3-FamilyMember => build\publish\v3\vs\FamilyMember\{ index.html, v3-FamilyMember.xml }
-                    // http://hl7.org/fhir/ValueSet/v3-ServiceDeliveryLocationRoleType => build\publish\v3\vs\ServiceDeliveryLocationRoleType\{ index.html, v3-ServiceDeliveryLocationRoleType.xml}
-                    basePart = 'vs/' + basePart
-                    file = new File(baseDir, basePart)
-                    if (file.exists()) {
-                      //?? http://hl7-fhir.github.io/FamilyMember/vs/FamilyMember/index.html
-                      println "V: $href"
-                      href = baseUrl + href.substring(0,2) + '/' + basePart
-                      printf "V: other good binding2 %s %s %s%nV:%n", basePart, elt.getPath(), href
-                    } else {
-                      //println "XX: other binding name=$name href=$href file=$file " + elt.getPath()
-                      printf "V: other bad binding2 ref=%s %s %s%n", ref, file, elt.getPath()
-                      href = null
-                    }
-                  }
-                } else href = null
-                if (href == null) println "X: other binding2 ref=$ref file=$file " + elt.getPath()
-              }
-            }
-
-            ValueSet vs = valuesets.get(ref)
-            if (vs == null && file.exists()) {
-              //URI uri = new URI(ref)
-              //printf "VS: %s %s %s%n", uri.getPath(), uri.getQuery(), uri.getFragment()
-              String baseName = ref
-              int ind = baseName.lastIndexOf('/')
-              if (ind > 0) baseName = baseName.substring(ind+1)
-              // String baseName = FilenameUtils.getBaseName(file.getName())
-              File parentDir = file.getParentFile()
-              File vsFile = new File(parentDir, baseName + ".xml")
-              /*
-                C1 http://hl7.org/fhir/vs/procedure-status     publish/procedure-status.xml
-                C2 http://hl7.org/fhir/vs/food-type            publish/valueset-food-type.xml
-                C3 http://hl7.org/fhir/v3/vs/ActReason         publish/v3/ActReason/v3-ActReason.xml
-                C4 http://hl7.org/fhir/v2/vs/0487              publish/v2/0487\v2-0487.xml
-               */
-              if (!vsFile.exists() && ref =~ /^http:\/\/hl7.org\/fhir\/(v[23])\/vs\//) {
-                // println "VS: ref $ref" // debug
-                vsFile = new File(parentDir, Matcher.getLastMatcher().group(1) + "-" + baseName + ".xml")
-                // println "VS: check $vsFile" // debug
-              }
-              if (!vsFile.exists()) {
-                vsFile = new File(parentDir, "valueset-" + baseName + ".xml")
-                //if (!vsFile.exists()) vsFile = new File(parentDir, "qicore/" + vsFile.getName())
-                // e.g. http://hl7.org/fhir/ValueSet/qicore-priority
-                // println "VS: check $vsFile " + vsFile.exists() // debug case #2 count=91
-              } // else println "VS: exists: $vsFile" // #=55 case #1
-              if (vsFile.exists()) {
-                // println "VS: ok: $vsFile" // debug cnt=120
-                def is
-                try {
-                  is = new FileInputStream(vsFile)
-                  vs = (ValueSet)xmlParser.parse(is)
-                  valuesets.put(ref, vs)
-                  //if (vs.hasName()) {
-                  // bindingName = StringUtils.trimToNull(vs.getName())
-                    // println "VS: " +
-                  //}
-                } catch(Exception e) {
-                  // ignore
-                  println "WARN: " + e.getMessage()
-                } finally {
-                    IOUtils.closeQuietly(is)
-                }
-              } // else println "VS: not found $vsFile base=$baseName"
-            }
-            if (vs) {
-              bindingName = StringUtils.trimToNull(vs.getName())
-              if (!bindingName) println "VS: no name $ref"
-              if (!bindingDef) bindingDef = StringUtils.trimToNull(vs.getDescription())
-            } else println "WARN: no valueset found: ref=$ref file=$file"
-            // href=other-resource-type       name=OtherResourceType
-            //if (ref.contains("daf-") || ref.contains("qicore-"))
-            // e.g. binding name=AdministrativeGender
-            // ref=http://hl7.org/fhir/vs/administrative-gender
-            // target=http://hl7-fhir.github.io/administrative-gender.html
-          } else if (ref.startsWith('http://') || ref.startsWith('https://')) {
-            printf 'X: other binding direct name: href=%-25s%n', ref // .replace("/ValueSet/","/vs/") //  name=%s, binding.getName() // debug
-            // https://www.gmdnagency.org/Info.aspx?pageid=1091
-            // https://rtmms.nist.gov/rtmms/index.htm#!hrosetta
-            // https://rtmms.nist.gov/rtmms/index.htm#!units
-            // http://tools.ietf.org/html/bcp47
-            href = ref
-            // println "X: DIRECT URI $href"
-            // sb.append(String.format('Binding: <a href="%s%s">%s</a>',
-            // baseUrl, file.getName(), binding.getName()))
-          }
-          if (href) {
-            sb.append('Binding: <a')
-            if (bindingDef) sb.append(String.format(' title="%s"', htmlEscape(bindingDef)))
-            sb.append(String.format(' href="%s">%s</a>', href, bindingName ? htmlEscape(bindingName) : 'value set'))
-          } //else printf 'X: other binding3 name: href=%-25s name=%s%n', ref, binding.getName() // debug
-        } //else printf 'X: other binding4 name: href=%-25s name=%s%n', ref, binding.getName() // debug
-      }
-
-      if (sb.length() == 0) {
-        //? sb.append('Binding: ').append(binding.getName()) // default (no URL)
-        printf 'X: other binding path=%-38s strength=%s [no url]%n', elt.getPath(), binding.getStrength() // debug
-        // no reference defined in binding
-        //  CarePlan.category     [strength=REQUIRED]
-        //  Group.code            [strength=REQUIRED]
-        //  RiskAssessment.method [strength=REQUIRED]
-      }
-
-      //a(href:baseUrl + binding.getName().toLowerCase()+".html", binding.getName())
-      def strength = binding.getStrength()
-      if (strength) {
-        sb.append(String.format(' (%s)', strength.getDisplay()))
-        //sb.append(String.format('(<a href="%s#%s">%s</a>)',
-                //"${baseUrl}terminologies.html", strength.toCode(), strength.getDisplay()))
-      }
-    } // binding?
+      dumpBinding(elt, binding, sb)
+    }
 
     // TODO: custom attribute for QICore label
 
@@ -1750,6 +1548,220 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       } // blockquote
     }
   } // end dumpTypeDesc
+
+  /**
+   * Dump binding definition on class-level page for a particular element
+   * @param elt
+   * @param binding
+   * @param sb  StringBuilder buffer for generated output
+   */
+  @TypeChecked
+  void dumpBinding(ElementDefinition elt, ElementDefinitionBindingComponent binding, StringBuilder sb) {
+    if (binding.hasValueSet()) {
+      String ref
+      if (binding.hasValueSetUriType()) {
+        def vs = binding.getValueSetUriType()
+        if (vs) ref = vs.getValue()
+      } else if (binding.hasValueSetReference()) {
+        def vs = binding.getValueSetReference()
+        if (vs && vs.hasReference()) {
+          //println "XX: string ref: " + ref.getClass().getName()
+          ref = vs.getReference()
+          // NOTE: hasBinding method removed as of July 2015
+          //if (binding.hasName())
+          //printf "X: binding: %-22s %-20s %s%n", elt.getPath(), binding.getName(), ref
+          //else
+          printf "X: binding: %-27s %s%n", elt.getPath(), ref //.replace("/ValueSet/","/vs/") // debug
+        }
+      } else println "X: binding w/other valueset type: " + binding.getValueSet()
+
+      if (ref) {
+        String href, bindingName = '', bindingDef
+        if (binding.hasDescription()) bindingDef = StringUtils.trimToNull(binding.getDescription())
+        // NOTE: new v3 URL as of 13-Jul-2015 http://hl7.org/fhir/ValueSet/v3-ActReason
+        if (ref =~ /^http:\/\/hl7.org\/fhir\/ValueSet\//) {
+          //if (ref =~ /^http:\/\/hl7.org\/fhir\/(v[23]\/)?vs\//) { .// July-13 Valueset URLs changed /vs/ => /Valueset/
+          // also http://hl7-fhir.github.io/v3/vs/ServiceDeliveryLocationRoleType/index.html
+          href = ref.substring(ref.lastIndexOf('/') + 1)
+          /*
+          X: other binding name: href=daf-problem               name=QICoreProblemCode
+          X: other binding name: href=daf-encounter-type        name=DAFEncounterType
+          X: other binding name: href=daf-encounter-reason      name=QICoreEncounterReasonValueset
+          X: other binding name: href=daf-race                  name=QICoreRace
+          X: other binding name: href=daf-ethnicity             name=QICoreEthnicity
+          X: other binding name: href=daf-procedure-type        name=qicore-procedure-type
+
+          ref=http://hl7.org/fhir/vs/daf-race
+          target=valueset-daf-race.html
+
+          name=QICoreImportance
+          ref=http://hl7.org/fhir/vs/qicore-importance
+          target=valueset-qicore-importance.html
+          */
+
+          File file = new File(publishDir, 'valueset-' + href + ".html")
+          if (file.exists()) {
+            //if (href.startsWith('daf-') || href.contains('qicore-')) {
+            href = baseUrl + file.getName()
+            // sb.append(String.format('Binding: <a href="%s%s">%s</a>',
+            // baseUrl, file.getName(), binding.getName()))
+          } else {
+
+            if (file.exists()) {
+              //if (href.startsWith('daf-') || href.contains('qicore-')) {
+              println "X: DIRECT URI $href"
+              href = baseUrl + file.getName()
+              //sb.append(String.format('Binding: <a href="%s%s">%s</a>',
+              //baseUrl, file.getName(), binding.getName()))
+            } else {
+              String baseName
+              if (file.getName().contains("daf-")) {
+                baseName = "daf/" + file.getName()
+              } else if (file.getName().contains("uslab-")) {
+                baseName = "uslab/" + file.getName()
+              } else {
+                baseName = "qicore/" + file.getName()
+              }
+              file = new File(publishDir, baseName)
+              if (file.exists()) {
+                href = baseUrl + baseName
+                println "X: DIRECT URI $href"
+              }
+            }
+
+            if (!file.exists()) {
+              file = new File(publishDir, href + ".html")
+              // printf "X: other binding name: href=%-25s name=%s%n", file.getName(), binding.getName() // debug
+              // NOTE: new v3 URL as of 13-Jul-2015 http://hl7.org/fhir/ValueSet/v3-ActReason
+              // which is mapped to folder: publish/v3/ActReason/ { index.html, v3-ActReason.xml }
+              // printf "V: href=%s ref=%s%n", href, ref//debug
+              //def name = ref.substring('http://hl7.org/fhir/'.length())
+              if (href.startsWith('v2-') || href.startsWith('v3-')) {
+                // other binding v3/vs/ActReason => \v3\ActReason\index.html
+                def basePart = href.substring(3) + "/index.html"
+                File baseDir = new File(publishDir, href.substring(0,2))
+                file = new File(baseDir, basePart)
+                if (file.exists()) {
+                  //href=v3-ActReason base=ActReason/index.html
+                  //other good binding1 ..\build\publish\v3\ActReason\index.html AllergyIntolerance.extension http://hl7-fhir.github.io/ActReasonX/ActReason/index.html
+                  println "V: href=$href base=$basePart"
+                  href = baseUrl + href.substring(0,2) + '/' +  basePart
+                  printf "V: other good binding1 %s %s %s%nV:%n", file.getPath(), elt.getPath(), href
+                } else {
+                  // alternate path
+                  // http://hl7.org/fhir/ValueSet/v3-FamilyMember => build\publish\v3\vs\FamilyMember\{ index.html, v3-FamilyMember.xml }
+                  // http://hl7.org/fhir/ValueSet/v3-ServiceDeliveryLocationRoleType => build\publish\v3\vs\ServiceDeliveryLocationRoleType\{ index.html, v3-ServiceDeliveryLocationRoleType.xml}
+                  basePart = 'vs/' + basePart
+                  file = new File(baseDir, basePart)
+                  if (file.exists()) {
+                    //?? http://hl7-fhir.github.io/FamilyMember/vs/FamilyMember/index.html
+                    println "V: $href"
+                    href = baseUrl + href.substring(0,2) + '/' + basePart
+                    printf "V: other good binding2 %s %s %s%nV:%n", basePart, elt.getPath(), href
+                  } else {
+                    //println "XX: other binding name=$name href=$href file=$file " + elt.getPath()
+                    printf "V: other bad binding2 ref=%s %s %s%n", ref, file, elt.getPath()
+                    href = null
+                  }
+                }
+              } else href = null
+              if (href == null) println "X: other binding2 ref=$ref file=$file " + elt.getPath()
+            }
+          }
+
+          ValueSet vs = valuesets.get(ref)
+          if (vs == null && file.exists()) {
+            //URI uri = new URI(ref)
+            //printf "VS: %s %s %s%n", uri.getPath(), uri.getQuery(), uri.getFragment()
+            String baseName = ref
+            int ind = baseName.lastIndexOf('/')
+            if (ind > 0) baseName = baseName.substring(ind+1)
+            // String baseName = FilenameUtils.getBaseName(file.getName())
+            File parentDir = file.getParentFile()
+            File vsFile = new File(parentDir, baseName + ".xml")
+            /*
+              C1 http://hl7.org/fhir/vs/procedure-status     publish/procedure-status.xml
+              C2 http://hl7.org/fhir/vs/food-type            publish/valueset-food-type.xml
+              C3 http://hl7.org/fhir/v3/vs/ActReason         publish/v3/ActReason/v3-ActReason.xml
+              C4 http://hl7.org/fhir/v2/vs/0487              publish/v2/0487\v2-0487.xml
+             */
+            if (!vsFile.exists() && ref =~ /^http:\/\/hl7.org\/fhir\/(v[23])\/vs\//) {
+              // println "VS: ref $ref" // debug
+              vsFile = new File(parentDir, Matcher.getLastMatcher().group(1) + "-" + baseName + ".xml")
+              // println "VS: check $vsFile" // debug
+            }
+            if (!vsFile.exists()) {
+              vsFile = new File(parentDir, "valueset-" + baseName + ".xml")
+              //if (!vsFile.exists()) vsFile = new File(parentDir, "qicore/" + vsFile.getName())
+              // e.g. http://hl7.org/fhir/ValueSet/qicore-priority
+              //println "VS: check $vsFile " + vsFile.exists() // debug case #2 count=91
+            } // else println "VS: exists: $vsFile" // #=55 case #1
+            if (vsFile.exists()) {
+              // println "VS: ok: $vsFile" // debug cnt=120
+              def is
+              try {
+                is = new FileInputStream(vsFile)
+                vs = (ValueSet)xmlParser.parse(is)
+                valuesets.put(ref, vs)
+                //if (vs.hasName()) {
+                // bindingName = StringUtils.trimToNull(vs.getName())
+                // println "VS: " +
+                //}
+              } catch(Exception e) {
+                // ignore
+                println "WARN: " + e.getMessage()
+              } finally {
+                IOUtils.closeQuietly(is)
+              }
+            } // else println "VS: not found $vsFile base=$baseName"
+          }
+          if (vs) {
+            bindingName = StringUtils.trimToNull(vs.getName())
+            if (!bindingName) println "VS: no name $ref"
+            if (!bindingDef) bindingDef = StringUtils.trimToNull(vs.getDescription())
+          } else println "WARN: no valueset found: ref=$ref file=$file"
+          // href=other-resource-type       name=OtherResourceType
+          //if (ref.contains("daf-") || ref.contains("qicore-"))
+          // e.g. binding name=AdministrativeGender
+          // ref=http://hl7.org/fhir/vs/administrative-gender
+          // target=http://hl7-fhir.github.io/administrative-gender.html
+        } else if (ref.startsWith('http://') || ref.startsWith('https://')) {
+          printf 'X: other binding direct name: href=%-25s%n', ref // .replace("/ValueSet/","/vs/") //  name=%s, binding.getName() // debug
+          // https://www.gmdnagency.org/Info.aspx?pageid=1091
+          // https://rtmms.nist.gov/rtmms/index.htm#!hrosetta
+          // https://rtmms.nist.gov/rtmms/index.htm#!units
+          // http://tools.ietf.org/html/bcp47
+          href = ref
+          // println "X: DIRECT URI $href"
+          // sb.append(String.format('Binding: <a href="%s%s">%s</a>',
+          // baseUrl, file.getName(), binding.getName()))
+        }
+        //if (isExtension && bindingDef) printf "ZZ: %-38s %s (%s)%n", edh.path, ref, binding.getStrength().getDisplay() //debug
+        if (href) {
+          sb.append('Binding: <a')
+          if (bindingDef) sb.append(String.format(' title="%s"', htmlEscape(bindingDef)))
+          sb.append(String.format(' href="%s">%s</a>', href, bindingName ? htmlEscape(bindingName) : 'value set'))
+        } //else printf 'X: other binding3 name: href=%-25s name=%s%n', ref, binding.getName() // debug
+      } //else printf 'X: other binding4 name: href=%-25s name=%s%n', ref, binding.getName() // debug
+    } // hasValueSet?
+
+    if (sb.length() == 0) {
+      //? sb.append('Binding: ').append(binding.getName()) // default (no URL)
+      printf 'X: other binding path=%-38s strength=%s [no url]%n', elt.getPath(), binding.getStrength() // debug
+      // no reference defined in binding
+      //  CarePlan.category     [strength=REQUIRED]
+      //  Group.code            [strength=REQUIRED]
+      //  RiskAssessment.method [strength=REQUIRED]
+    }
+
+    //a(href:baseUrl + binding.getName().toLowerCase()+".html", binding.getName())
+    def strength = binding.getStrength()
+    if (strength) {
+      sb.append(String.format(' (%s)', strength.getDisplay()))
+      //sb.append(String.format('(<a href="%s#%s">%s</a>)',
+      //"${baseUrl}terminologies.html", strength.toCode(), strength.getDisplay()))
+    }
+  }
 
   @TypeChecked
   void dumpReferenceType(ElementDefinition elt, TypeRefComponent type, String code, StringBuilder sb) {
