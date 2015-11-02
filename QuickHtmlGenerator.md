@@ -23,10 +23,12 @@ When class elements refer to other classes, the reference type is also normalize
 
 QUICKHtmlGenerator requires setting the **fhirPublishDir** property in the config.dat file.
 This is the directory of the entire published FHIR specification (aka FHIR website)
-which includes all FHIR profiles, extensions, valuesets, QICore implementation guide, etc.
-This directory includes a "extension-definitions.xml" file, and qicore + DAF subdirectories,
+which includes all FHIR profiles, extensions, valuesets, QICore & DAF implementation guides, etc.
+This directory includes a "extension-definitions.xml" file, and qicore + daf subdirectories,
 as well as profiles for all core resources in the top-level folder.
 
 The published FHIR specification can be obtained from either 1) running publish tool from
 FHIR spec sources via fhir-svn repo, or 2) downloading published spec package.
 * [FHIR DSTU2 package (September 2015) version 1.0.1 - official version](http://hl7.org/fhir/DSTU2/fhir-spec.zip)
+ 
+NOTE if you download the package above the  **fhirPublishDir** property must point to the folder that has the qicore & daf sub-folders and not the parent folder that has "index.html" file and "site" folder.
