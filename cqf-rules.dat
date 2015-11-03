@@ -3,6 +3,9 @@ cqf-condition.ignoreWarn=element has binding and should specify a short value: C
 cqf-condition-refuted.ignoreWarn=element has binding and should specify a short value: Condition.certainty
 
 # intentional overriden properties in base resources for cqf profiles
+patient-qicore.Patient.animal.card=0..0
+patient-daf.Patient.animal.card=0..0
+adverseevent-qicore.Basic.subject.card=1..1
 cqf-allergyintolerance-refuted.AllergyIntolerance.status.card=1..1
 cqf-immunization.Immunization.explanation.refusalReason.card=0..0
 cqf-immunization-refused.Immunization.explanation.reason.card=0..0
@@ -15,6 +18,7 @@ cqf-medicationprescription.MedicationPrescription.patient.card=1..1
 cqf-medicationstatement.MedicationStatement.reasonNotGiven.card=0..0
 cqf-medicationstatement.MedicationStatement.patient.card=1..1
 cqf-medicationstatement-notgiven.MedicationStatement.patient.card=1..1
+cqf-medicationstatement-notgiven.MedicationStatement.reasonForUse[x].card=0..0
 cqf-medicationstatement-notgiven.MedicationStatement.wasNotGiven.card=1..1
 cqf-medicationstatement.MedicationPrescription.patient.card=1..1
 cqf-observation.Observation.value[x].card=1..1
