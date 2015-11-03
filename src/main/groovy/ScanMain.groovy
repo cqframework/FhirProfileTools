@@ -11,11 +11,19 @@ checker.tearDown()
 */
 
 try {
-  sourceDir.listFiles().each { file ->
-    if (file.isDirectory()) {
-      checker.checkDirectory(file)
+  println "\nsource=" + sourceDir.getAbsolutePath()
+  String guide = FhirUtils.getGuide()
+  if (guide)
+    checker.checkGuide(sourceDir, new File(sourceDir, "../guides/$guide/${guide}.xml"))
+  else {
+    sourceDir.listFiles().each { file ->
+      if (file.isDirectory()) {
+        checker.checkDirectory(file)
+      }
     }
   }
+
 } finally {
   checker.tearDown()
 }
+
