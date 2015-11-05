@@ -1,7 +1,7 @@
 # QUICK HTML Generator
 
 The QUICK model generator creates custom Javadoc-like documentation for QICore FHIR profiles
-using `runQuickHtml` task.
+using `runQuickHtml` task. QUICK model is created in "html" folder.
 
 ## Introduction
 
@@ -35,3 +35,42 @@ FHIR spec sources via fhir-svn repo, or 2) downloading published spec package.
 NOTE if you download the package above, the **fhirPublishDir** property must point to the folder that contains the
 qicore & daf sub-folders and not the parent folder that has "index.html" file and "site" folder.
 In that case, set fhirPublishDir to absolute location of the "site" folder.
+
+## Building
+
+To generate QUICK HTML javadoc-like documentation for FHIR profiles as classes run `runQuickHtml` task:
+
+    gradlew runQuickHtml
+
+ If gradle is installed locally then run
+
+    gradle runQuickHtml
+
+## Notes
+
+There are some errors in generated profiles in the FHIR DSTU2 package from September 2015 with respect to cardinality of extensions.
+The publisher tool uses the default cardinality 0..* for extensions rather than use the cardinality defined in extensions. This has
+been fixed in the current publishing tool and available in the continuous integration branch of FHIR. Issue was documented in HL7
+gforge as issue # [8750](http://gforge.hl7.org/gf/project/fhir/tracker/?action=TrackerItemEdit&tracker_item_id=8750).
+If use the packaged DSTU2 bundle then the errors will be present in the source profiles and carried through to the logical model documentation.
+
+Example:
+
+XML definition of the profile for severity extension element was in correctly listed as 0..* rather than 0..1 as defined in the extension.
+
+Source: http://hl7.org/fhir/DSTU2/qicore/qicore-adverseevent.profile.xml.html
+```
+<snapshot>
+  ...
+  <element>
+      <path value="Basic.extension"/>
+      <name value="severity"/>
+      <short value="Extension"/>
+      <definition value="An Extension"/>
+      <min value="0"/>
+      <max value="*"/>
+      <type>
+        <code value="Extension"/>
+        <profile value="http://hl7.org/fhir/StructureDefinition/qicore-adverseevent-severity"/>
+      </type>
+```
