@@ -56,7 +56,7 @@ If use the packaged DSTU2 bundle then the errors will be present in the source p
 
 Example:
 
-XML definition of the profile for severity extension element was in correctly listed as 0..* rather than 0..1 as defined in the extension.
+XML definition of the profile for severity extension element was incorrectly listed as 0..* rather than 0..1 as defined in the extension definition.
 
 Source: http://hl7.org/fhir/DSTU2/qicore/qicore-adverseevent.profile.xml.html
 ```
