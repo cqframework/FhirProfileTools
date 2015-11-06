@@ -1,7 +1,7 @@
 # QUICK HTML Generator
 
 The QUICK model generator creates custom Javadoc-like documentation for QICore FHIR profiles
-using `runQuickHtml` task. QUICK model is created in "html" folder.
+using `runQuickHtml` task. Output is created in "html" folder of the FHIR Profile Tools project folder.
 
 ## Introduction
 
@@ -23,13 +23,14 @@ When class elements refer to other classes, the reference type is also normalize
 
 QUICKHtmlGenerator requires setting the **fhirPublishDir** property in the config.dat file.
 More details on config.dat are in the Running section of the main [README](README.md).
-The property fhirPublishDir is the directory of the entire published FHIR specification (aka FHIR website)
+The property fhirPublishDir is the directory of the entire published FHIR specification (aka FHIR website),
 which includes all FHIR profiles, extensions, valuesets, QICore & DAF implementation guides, etc.
 This directory includes a "extension-definitions.xml" file, and qicore + daf subdirectories,
 as well as profiles for all core resources in the top-level folder.
 
 The published FHIR specification can be obtained from either 1) running publish tool from
-FHIR spec sources via fhir-svn repo, or 2) downloading published spec package.
+FHIR spec sources via fhir-svn repo and set property to "publish" folder, or 2) downloading published spec package and set
+property to "site" folder.
 * [FHIR DSTU2 package (September 2015) version 1.0.1 - official version](http://hl7.org/fhir/DSTU2/fhir-spec.zip)
  
 NOTE if you download the package above, the **fhirPublishDir** property must point to the folder that contains the
@@ -38,7 +39,8 @@ In that case, set fhirPublishDir to absolute location of the "site" folder.
 
 ## Building
 
-To generate QUICK HTML javadoc-like documentation for FHIR profiles as classes run `runQuickHtml` task:
+To generate QUICK HTML javadoc-like documentation for FHIR profiles as classes run `runQuickHtml` task
+from the command-line in the FHIR Profile Tools project folder:
 
     gradlew runQuickHtml
 
@@ -56,7 +58,8 @@ If use the packaged DSTU2 bundle then the errors will be present in the source p
 
 Example:
 
-XML definition of the profile for severity extension element was incorrectly listed as 0..* rather than 0..1 as defined in the extension definition.
+XML definition of the profile for severity extension element in Adverse Event was incorrectly listed as 0..* rather than 0..1
+as defined in the extension definition.
 
 Source: http://hl7.org/fhir/DSTU2/qicore/qicore-adverseevent.profile.xml.html
 ```
