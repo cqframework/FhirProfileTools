@@ -1,6 +1,6 @@
 // $Id:  QuickHtmlGenerator.groovy,v 1.13 2015/09/29 16:02:10 mathews Exp $
 /*
-        Copyright (C) 2014 The MITRE Corporation. All Rights Reserved.
+ Copyright (C) 2014 The MITRE Corporation. All Rights Reserved.
 
  The program is provided "as is" without any warranty express or implied, including
  the warranty of non-infringement and the implied warranties of merchantability and
@@ -231,6 +231,31 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
   }
 
+  // workaround for FHIR publish bug
+  // see http://gforge.hl7.org/gf/project/fhir/tracker/?action=TrackerItemEdit&tracker_item_id=8729
+  def complexExtensionMapping = [
+    'Encounter.extension.extension.condition':
+		'Encounter.relatedCondition.condition|http://hl7.org/fhir/StructureDefinition/encounter-relatedCondition#condition',
+    'Encounter.extension.extension.role':
+		'Encounter.relatedCondition.role|http://hl7.org/fhir/StructureDefinition/encounter-relatedCondition#role',
+    'Goal.extension.extension.measure':
+            'Goal.target.measure|http://hl7.org/fhir/StructureDefinition/goal-target#measure',
+    'Goal.extension.extension.detail':
+            'Goal.target.detail|http://hl7.org/fhir/StructureDefinition/goal-target#detail',
+	// note there are two flattened elements with path=Patient.extension.extension and name=period
+	// these require special handling
+	'Patient.extension.extension.code':
+		'Patient.nationality.code|http://hl7.org/fhir/StructureDefinition/patient-nationality#code',
+    'Patient.extension.extension.period1':
+		'Patient.nationality.period|http://hl7.org/fhir/StructureDefinition/patient-nationality#period',
+    'Patient.extension.extension.NCT':
+		'Patient.clinicalTrial.NCT|http://hl7.org/fhir/StructureDefinition/patient-clinicalTrial#NCT',
+    'Patient.extension.extension.period2':
+		'Patient.clinicalTrial.period|http://hl7.org/fhir/StructureDefinition/patient-clinicalTrial#period',
+    'Patient.extension.extension.reason':
+		'Patient.clinicalTrial.reason|http://hl7.org/fhir/StructureDefinition/patient-clinicalTrial#reason'
+  ]
+
   QuickHtmlGenerator(File publishDir) {
     super(publishDir)
   }
@@ -335,7 +360,8 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     // [http://hl7.org/fhir/StructureDefinition/organization-qicore-organization:Organization,
     // http://hl7.org/fhir/StructureDefinition/encounter-qicore-encounter:Encounter,
 
-    // TODO - prescan all profiles and all element types. if reference classes in differential not present (e.g. RelatedPerson)
+    // prescan all profiles and all element types.
+    // if reference classes in differential not present (e.g. RelatedPerson)
     // e.g. AdverseEvent.cause.item ref=DiagnosticStudy
       createOtherReferences()
 
@@ -517,21 +543,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       }
       */
 
-      //debug
-      // dump required bindings that have no reference valueset - see gforge issue #8115
-      /*
-      if (elt.hasBinding()) {
-        def binding = elt.getBinding()
-        if (binding.hasValueSetReference()) binding = binding.getValueSetReference().getReference()
-        else if(binding.hasValueSetUriType()) binding = binding.getValueSetUriType().getValueAsString()
-        else if(!binding.hasValueSet()) {
-          binding = "??" + binding.getStrength().getDisplay()
-          // printf "ZZ: %-48s %s%n", elt.getPath(), binding // .replace("/ValueSet/","/vs/")
-        }
-        printf "ZZ: %-48s %s%n", elt.getPath(), binding // .replace("/ValueSet/","/vs/")
-      }
-      */
-
       if (elt.hasMax() && elt.getMax() == '0') {
         // skip elements that are removed from the resource; e.g. Patient.animal
         // not part of the class object model
@@ -544,7 +555,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       List<TypeRefComponent> types = elt.getType()
       final TypeRefComponent typeDef = types ? types.get(0) : null
       if (resourceName == 'Resource') {
-        if (path.endsWith(".meta")) return // skip
+        //if (path.endsWith(".meta")) return // skip
       } else {
         if (path.endsWith('.id') && typeDef && 'id' == typeDef.getCode()) {
           // ignore internal identifier
@@ -624,6 +635,54 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         if (elt.hasName()) {
           String name = elt.getName()
           if (name.startsWith(resourceNamePrefix)) name = name.substring(resourceNamePrefix.length())
+
+          // workaround hack for "bug" in profile. extension.extensions have wrong name and no profile URL in type.
+          // see http://gforge.hl7.org/gf/project/fhir/tracker/?action=TrackerItemEdit&tracker_item_id=8729
+          /*
+          WARN: missing profile Encounter.extension.extension condition
+          WARN: missing profile Encounter.extension.extension role
+          WARN: missing profile Goal.extension.extension measure
+          WARN: missing profile Goal.extension.extension detail
+          WARN: missing profile Patient.extension.extension code
+          WARN: missing profile Patient.extension.extension period
+          WARN: missing profile Patient.extension.extension NCT
+          WARN: missing profile Patient.extension.extension period
+          WARN: missing profile Patient.extension.extension reason
+           */
+          if (!typeDef.hasProfile()) {
+            String pathNameKey = path + "." + name
+			if (pathNameKey == "Patient.extension.extension.period") {
+				// handle special case with duplicate names
+				if (elt.getShort().contains("Nationality"))
+					pathNameKey += "1" // Patient.nationality.period
+				else
+					pathNameKey += "2" // Patient.clinicalTrial.period
+			}
+            String profileUrl = complexExtensionMapping[pathNameKey]
+            if (profileUrl) {
+              String[] parts = profileUrl.split('\\|',2)
+              if (parts.length == 2) {
+                name = parts[0]
+                profileUrl = parts[1]
+                elt.setName(name)
+                println "XX: match name=$name profile=$profileUrl"
+                if (!typeDef.hasProfile()) typeDef.addProfile(profileUrl)
+				else println "XX: already has a profile " + typeDef.getProfile()
+              } else profileUrl = null // ERROR
+			  // nationality.period
+			  // clinicalTrial.period
+            }
+            if (!profileUrl) println "WARN: missing profile $path $name" //debug
+            /*
+            if (resourceName == "Encounter" && name == "role") {
+              name = "Encounter.relatedCondition.role"
+              println "X: fix role"
+              elt.setName(name)
+              if (!typeDef.hasProfile()) typeDef.addProfile('http://hl7.org/fhir/StructureDefinition/encounter-relatedCondition#role')
+            }
+            */
+          }
+          // end workaround hack for "bug" in profile
           pathName = name
           // path / name
           // Procedure.extension / reasonNotPerformed
@@ -679,6 +738,16 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         // if (elt.hasConstraint()) println "XI: $pathName" // none ??
         //debug
 
+        if (!elt.hasName() && pathName.endsWith('.extension')) {
+          // TODO: need better solution or fix for this
+          // path .extension should have been replaced with a conceptual name
+          // bogus element missing name but has profile value in type.
+          // for now these elements must be ignored
+          // workaround for http://gforge.hl7.org/gf/project/fhir/tracker/?action=TrackerItemEdit&tracker_item_id=8729
+          printf "WARN: extext? path=%s name=%s profile=%s%n", elt.getPath(), elt.getName(), typeDef?.getProfile().get(0).getValue()
+          return // skip this bogus element
+        }
+
       } // isExtension?
       else if (path.contains('.extension.')) {
         // extension sub-component
@@ -699,7 +768,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           // not errors: e.g., Patient.extension.value[x], Patient.extension.id
           // println "INFO-ERR: skip ext $pathName"
           // ignore ??
-        } else println "ERROR: duplicate element: $pathName"
+        } else println "WARN: duplicate element: $pathName path=$path name=" + elt.getName()
         return
       }
 
@@ -861,6 +930,11 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     } // html
   }  // generateClassHtml
 
+  /**
+   * Normalize dotted-notation path to class name; e.g. Patient.contact.address => Patient.Contact.Address
+   * @param name element path name
+   * @return class name
+   */
   @TypeChecked
   static String normalizeClassName(String name) {
     StringBuilder sb = new StringBuilder()
@@ -1235,7 +1309,9 @@ class QuickHtmlGenerator extends FhirSimpleBase {
       String cardinality
       if (elt.hasMin() && elt.hasMax()) {
         cardinality = String.format("%d..%s", elt.getMin(), elt.getMax())
-      } else cardinality = '' // if (snapElt && snapElt.hasMin() && snapElt.hasMax()) {
+      } else cardinality = ''
+
+      // output HTML for each element or extension
 
       html.tr(class: (count++ % 2 == 0 ? 'altColor' : 'rowColor')) {
         td(class: 'colFirst') {
@@ -1252,8 +1328,8 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           }
 
           // check if some extension elements with multiple non-reference types names don't have [x] suffix -- reported as QICore bug #154
-          if (extType && extType.size() > 1 && !elt.getName().endsWith("[x]") && extType.get(0).getCode() != 'Reference') {
-            printf "INFO: elt path=%s name=%s %s%n", elt.getPath(), elt.getName(), extTypeCode
+          if (extType && extType.size() > 1 && (!elt.hasName() || !elt.getName().endsWith("[x]")) && extType.get(0).getCode() != 'Reference') {
+            printf "INFO: elt path=%s name=%s [%s]%n", elt.getPath(), elt.getName(), extTypeCode
             // name=FamilyMemberHistory.condition.abatement [date | Age | boolean]
             // name=Goal.target.detail [Quantity | Range | CodeableConcept]
             // name=Specimen.treatment.treatmentTime [Period | Duration]
@@ -1261,6 +1337,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             name += "[x]"
           }
 
+          // prefix key symbols (or blank space for indentation) for this element; e.g. must support
           StringBuilder sb = new StringBuilder()
           if (elt.getMustSupport()) sb.append('<i class="fa fa-check fa-fw" title="Must Support"></i>')
           else sb.append('<i class="fa fa-fw"></i>')
@@ -1381,7 +1458,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           //---------------------------------------------------------------------
           */
 
-          // if (!mustSupport && !isExtension) mkp.yieldUnescaped('</strike>')
           dumpTypeDesc(html, resourceName, child, extElt, isExtension, type, binding, desc )
         } // td
 
@@ -2090,11 +2166,10 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             //Collections.sort(classes)
             //classes.each { className ->
             profiles.keySet().each { className ->
-              if (complexTypes.contains(className))
+              if (complexTypes.contains(className)) {
                 otherClasses.add(className)
-              else
+              } else
               li {
-                // String className = getClassName(id)
                 a(href: "pages/${className}.html", className)
               }
             }
