@@ -95,8 +95,9 @@ using `runQuickHtml` task:
 
 # Dependencies
 
-The scripts use the [Java to SpreadsheetML](http://sourceforge.net/projects/xelem/)
+* [Java to SpreadsheetML](http://sourceforge.net/projects/xelem/)
 Java-library to read the Excel XML spreadsheet files.
+* FHIR DSTU2 Java Reference implementation API
 
 # License
 
