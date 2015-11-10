@@ -97,7 +97,7 @@ using `runQuickHtml` task:
 
 * [Java to SpreadsheetML](http://sourceforge.net/projects/xelem/)
 Java-library to read the Excel XML spreadsheet files.
-* FHIR DSTU2 Java Reference implementation API
+* [FHIR DSTU2 Java Reference implementation API](http://hl7.org/fhir/DSTU2/org.hl7.fhir.tools.jar) ([Source](http://hl7.org/fhir/DSTU2/fhir-1.0.0-Java-0.9.zip))
 
 # License
 
