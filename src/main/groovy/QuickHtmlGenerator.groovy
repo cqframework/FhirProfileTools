@@ -1582,7 +1582,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           def types = sb.toString()
           if (listType || types.contains('<')) {
             if (listType) {
-              //if (types.endsWith(" (TBD)")) types = types.substring(0,types.length()-6) + "&gt; (TBD)"
               types = types + ">"
             }
             mkp.yieldUnescaped(types)
