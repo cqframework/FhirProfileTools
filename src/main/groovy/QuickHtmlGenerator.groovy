@@ -1,4 +1,4 @@
-// $Id:  QuickHtmlGenerator.groovy,v 1.13 2015/09/29 16:02:10 mathews Exp $
+// $Id:  QuickHtmlGenerator.groovy,v 1.14 2015/11/09 10:55:43 mathews Exp $
 /*
  Copyright (C) 2014 The MITRE Corporation. All Rights Reserved.
 
@@ -59,6 +59,7 @@ import java.util.regex.Matcher
  *  9/28/15 Add card column back to class pages
  * 10/01/15 fix removing dups when mapping to CQL types
  * 10/02/15 Suppress complex types from appearing in Direct Known Subclasses in resource page
+ * 11/13/15 Recursively create subclasses for nested structures
  *
  */
 class QuickHtmlGenerator extends FhirSimpleBase {
@@ -823,6 +824,19 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         mkp.yieldUnescaped('\n<!-- ======== START OF CLASS DATA ======== -->')
         div(class: 'header') {
           h2(title: "Class $className", class: 'title') {
+          if (className.contains('.')) {
+            def parts = className.split("\\.")
+            StringBuilder sb = new StringBuilder()
+            StringBuilder link = new StringBuilder()
+            for (int i=0; i < parts.length-1; i++) {
+              if (link.length() != 0) link.append('.')
+              link.append(parts[i])
+              sb.append(String.format('<a href="%s.html">%s</a>', link.toString(), parts[i]))
+                      .append('.')
+            }
+            sb.append(parts[parts.length-1])
+            mkp.yieldUnescaped(sb.toString())
+          } else
             mkp.yield(className)
           }
           /*
@@ -842,7 +856,6 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                 a(href: "$baseUrl${id}.html", id) // http://hl7-fhir.github.io/allergyintolerance.html
                 br()
               } // li
-
 
               // show if this is not a FHIR base resource
 //              if ('resource' != profile.getType())
@@ -928,6 +941,54 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
       } // body
     } // html
+
+    edh.getChildren().each { child ->
+        final ElementDefinition elt = child.self
+        if (!child.getChildren().isEmpty()
+                && (!elt.hasType() || !primTypes.contains(elt.getType().get(0).getCode()))) {
+          String childName = child.path
+          int ind = childName.lastIndexOf('.')
+          if (ind > 0) {
+            childName = childName.substring(ind + 1)
+          }
+          printf  "11: create class: %s > %s%n", child.path, childName
+
+          StructureDefinition childProfile = new StructureDefinition()
+          childProfile.setId(child.path)
+          childProfile.setDescription(elt.getDefinition())
+          def snapshot = new StructureDefinition.StructureDefinitionSnapshotComponent()
+          childProfile.setSnapshot(snapshot)
+          childProfile.setDifferential(new StructureDefinition.StructureDefinitionDifferentialComponent())
+          TypeRefComponent type = elt.hasType() ? elt.getType().get(0) : null
+          if (type && type.getCode() == 'Extension' ) {
+            if (type.hasProfile()) {
+              final String extProfile = getProfile(type)
+              ExtensionDef extProfileDef = createExtensionDef(elt, extProfile)
+              if (extProfileDef) {
+                printf '11: uri=%s name=%s%n', extProfileDef.extProfileUri, extProfileDef.extProfileEltName
+                // uri=http://hl7.org/fhir/StructureDefinition/adverseevent-qicore-cause name=
+                // uri=http://hl7.org/fhir/StructureDefinition/encounter-relatedCondition name=
+                if (!extProfileDef.extProfileEltName) {
+                  def sd = extProfileDef.getStructure()
+                  if (sd) {
+                    String desc = sd.getDescription()?.trim()
+                    if (desc) {
+                      childProfile.setDescription(desc)
+                    }
+                  }
+                } // TODO: else sub-extension element
+              }
+            }
+          }
+          snapshot.addElement(elt)
+
+          // Normalize path to class name; e.g. Patient.contact.address => Patient.Contact.Address
+          className = normalizeClassName(child.path)
+          resourceName = child.path
+
+          generateClassHtml(childProfile, resourceName, className, child)
+        }
+    }
   }  // generateClassHtml
 
   /**
@@ -1130,7 +1191,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
               }
               //debug
               if (rootElt.hasMin() || rootElt.hasMax())
-                printf "XX: subelt card: [%d,%s] ext card: [%d %s] %s%n",
+                printf "XX: subelt card: [%d,%s] ext card: [%d,%s] %s%n",
                         elt.hasMin() ? elt.getMin() : -1, elt.getMax(),
                         rootElt.hasMin() ? rootElt.getMin() : -1, rootElt.getMax(),
                         elt.getName()
@@ -1521,8 +1582,8 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           def types = sb.toString()
           if (listType || types.contains('<')) {
             if (listType) {
-              if (types.endsWith(" (TBD)")) types = types.substring(0,types.length()-6) + "&gt; (TBD)"
-              else types = types + ">"
+              //if (types.endsWith(" (TBD)")) types = types.substring(0,types.length()-6) + "&gt; (TBD)"
+              types = types + ">"
             }
             mkp.yieldUnescaped(types)
           } else
@@ -1573,7 +1634,8 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 		ValueSet.expansion.contains.contains
          */
       } else {
-        // if (checkElementType) println "check type for " + edh.path
+        // TODO: any other special cases ??
+        println "X: special case : " + edh.path // DiagnosticOrder.item.event (only 1 match)
         sb.setLength(0)
         boolean listType = elt.hasMax() && elt.getMax() == '*'
         if (listType) sb.append('List&lt;')
@@ -1585,14 +1647,14 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         int ind = name.lastIndexOf('.')
         if (ind > 0) name = name.substring(ind+1)
         name = StringUtils.capitalize(name)
-        // TODO: use link to generated anonymous structure element as sub-class
-        sb.append("<a href='todo.html'>").append(name).append("</a>")
+
+        // normalize path to class name and adjust for special cases; e.g. DiagnosticOrder.item.event => DiagnosticOrder.event
+        def link = normalizeClassName( specialCaseElements.get(edh.path) ?: edh.path )
+        sb.append("<a href='${link}.html'>$name</a>")
         if (listType) sb.append('&gt;')
-        sb.append(" (TBD)")
+
         html.mkp.yieldUnescaped(sb.toString())
         sb.setLength(0)
-        //html.mkp.yieldUnescaped("<B>" + StringUtils.capitalize(name) + " (TBD)</B>")
-        // TODO: create sub-class for this element
       }
       // html.mkp.yieldUnescaped("<a href='${baseUrl}element.html'>Element</a>")
       // Encounter.location, Encounter.participant, Encounter.statusHistory, FamilyHistory.relation, FamilyHistory.relation.condition
@@ -1941,7 +2003,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         //appendable = code
         println "XX: check: $code " + edh.path // Basic.cause
       } else {
-        // TODO: new sub-class
+        // new sub-class
         printf "X: Element subclass for %s [%s]%n", edh.path, code
         // AllergyIntolerance.reaction            [code=BackboneElement] => Reaction
         // Encounter.relatedCondition             [code=Element] => RelatedCondition
@@ -1955,8 +2017,9 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         int ind = name.lastIndexOf('.')
         if (ind > 0) name = name.substring(ind+1)
         name = StringUtils.capitalize(name)
-        appendable = "<a href='todo.html'>$name</a> (TBD)"
-        // TODO: create sub-class for this element
+        String link = normalizeClassName(edh.path)
+        code = name
+        appendable = "<a href='${link}.html'>${name}</a>"
       }
     }
     else if (primTypes.contains(code)) {
