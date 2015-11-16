@@ -1,15 +1,19 @@
 FhirProfileTools
 ================
 
-Collection of tools for authors of Fast Healthcare Interoperability Resources
-([FHIR](http://www.hl7.org/implement/standards/fhir/)) profiles to automate
+The ([FHIR](http://www.hl7.org/implement/standards/fhir/)) (Fast Healthcare Interoperability Resources)
+Specification is a standard for exchanging healthcare information electronically. 
+Part of FHIR are profiles that define the structure of a resource (e.g. Condition, Patient, Procedure, etc.).
+
+This project is collection of tools for authors of FHIR profiles to automate
 tasks such as validation and supplemental documentation generation.
-Initial set of tools are for profiles in Excel XML Spreadsheet 2003 format (aka SpreadsheetML),
-which is used in FHIR to define base resources and associated profiles.
+First set of tools are for source profiles in Excel XML Spreadsheet 2003 format (aka SpreadsheetML),
+which are used in FHIR to define base resources and associated profiles. Second type of tools
+include tools to parse the FHIR XML Profiles which are published as part of the specification.
 
 Anybody creating profiles off the continuous integration branch of fhir-svn repo
-has dealt with changes in the base resources and need to reflect those changes
-back in the profiles. Identifying what changes were made and what potential
+has had to deal with changes in the base resources and needs to reflect those changes
+back in their profiles. Identifying what changes were made and what potential
 conflicts exist between the base resources and profiles can be daunting.
 
 The FhirProfileTools project provides a collection of tools that can scan
@@ -32,7 +36,7 @@ The FhirProfileValidator can identify the following situations:
    
 FhirSimpleBase is a base class with helper methods for parsing the published FHIR structure
 definition XML files (aka profiles). It uses the FHIR Java reference API (tools.jar) that
-is published along with the FHIR documentation.
+is published along with the FHIR Specification.
 
 Additional Documentation:
 * [Customizing Validation Rules](customRules.md)
