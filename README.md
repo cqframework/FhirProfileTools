@@ -1,13 +1,15 @@
 FhirProfileTools
 ================
 
-The ([FHIR](http://www.hl7.org/implement/standards/fhir/)) (Fast Healthcare Interoperability Resources)
+The [FHIR](http://www.hl7.org/implement/standards/fhir/) (Fast Healthcare Interoperability Resources)
 Specification is a standard for exchanging healthcare information electronically. 
 Part of FHIR are profiles that define the structure of a resource (e.g. Condition, Patient, Procedure, etc.).
+Profiles can be represented in source-form in the Excel XML Spreadsheet 2003 format (aka SpreadsheetML) or
+in the published form as XML with the http://hl7.org/fhir namespace.
 
 This project is collection of tools for authors of FHIR profiles to automate
 tasks such as validation and supplemental documentation generation.
-First set of tools are for source profiles in Excel XML Spreadsheet 2003 format (aka SpreadsheetML),
+First set of tools are for source profiles in SpreadsheetML format,
 which are used in FHIR to define base resources and associated profiles. Second type of tools
 include tools to parse the FHIR XML Profiles which are published as part of the specification.
 

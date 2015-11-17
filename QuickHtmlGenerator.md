@@ -29,8 +29,8 @@ This directory includes a "extension-definitions.xml" file, and qicore + daf sub
 as well as profiles for all core resources in the top-level folder.
 
 The published FHIR specification can be obtained from either 1) running publish tool from
-FHIR spec sources via fhir-svn repo and set property to "publish" folder, or 2) downloading published spec package and set
-property to "site" folder.
+FHIR spec sources via fhir-svn repository and set property to "publish" folder, or 2) downloading published spec package
+and set property to "site" folder.
 * [FHIR DSTU2 package (September 2015) version 1.0.1 - official version](http://hl7.org/fhir/DSTU2/fhir-spec.zip)
  
 NOTE if you download the package above, the **fhirPublishDir** property must point to the folder that contains the
