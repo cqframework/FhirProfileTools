@@ -1,4 +1,6 @@
 File sourceDir = FhirUtils.getSourceDir()
+if (!sourceDir) throw new IllegalArgumentException("fhirSourceDir property is required")
+
 def pat = FhirUtils.getProfilePattern()
 FhirProfileValidator checker = new FhirProfileValidator(pat, FhirUtils.getRules())
 checker.setup()
@@ -26,4 +28,3 @@ try {
 } finally {
   checker.tearDown()
 }
-

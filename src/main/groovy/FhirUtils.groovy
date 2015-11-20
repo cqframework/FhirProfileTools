@@ -75,14 +75,20 @@ class FhirUtils {
       }
     }
     String val = props.getProperty('fhirSourceDir')
-    if (!val) throw new IllegalArgumentException("fhirSourceDir property is required")
-    sourceDir = new File(val)
-    if (!sourceDir.isDirectory()) throw new IllegalArgumentException("fhirSourceDir must be a directory")
+    if (val) {
+      sourceDir = new File(val)
+      if (!sourceDir.isDirectory()) throw new IllegalArgumentException("fhirSourceDir must be a directory")
+    }
 
     val = props.getProperty('fhirPublishDir')
     if (val) {
       publishDir = new File(val)
       if (!publishDir.isDirectory()) throw new IllegalArgumentException("fhirSourceDir must be an existing directory")
+    }
+
+    if (sourceDir == null && publishDir == null) {
+      throw new IllegalArgumentException("either fhirSourceDir and/or fhirPublishDir property must be specified")
+      // One or both is required depending on which tools are used.
     }
 
     val = props.getProperty('profilePattern', '.*profile-spreadsheet.xml$')
