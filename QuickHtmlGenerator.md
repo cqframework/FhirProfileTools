@@ -30,7 +30,7 @@ as well as profiles for all core resources in the top-level folder.
 
 The published FHIR specification can be obtained from either 1) running publish tool from
 FHIR spec sources via fhir-svn repository and set property to "publish" folder, or 2) downloading published spec package
-and set property to "site" folder.
+and set property to "site" folder (e.g. C:/fhir/dstu2/site).
 * [FHIR DSTU2 package (September 2015) version 1.0.1 - official version](http://hl7.org/fhir/DSTU2/fhir-spec.zip)
  
 NOTE if you download the package above, the **fhirPublishDir** property must point to the folder that contains the
@@ -51,14 +51,14 @@ from the command-line in the FHIR Profile Tools project folder:
 ## Notes
 
 There are some errors in generated profiles in the FHIR DSTU2 package from September 2015 with respect to cardinality of extensions.
-The publisher tool uses the default cardinality 0..* for extensions rather than use the cardinality defined in extensions. This has
+The publisher tool uses the default cardinality 0..* for extensions rather than use the cardinality as defined in extensions. This has
 been fixed in the current publishing tool and available in the continuous integration branch of FHIR. Issue was documented in HL7
 gforge as issue # [8750](http://gforge.hl7.org/gf/project/fhir/tracker/?action=TrackerItemEdit&tracker_item_id=8750).
 If use the packaged DSTU2 bundle then the errors will be present in the source profiles and carried through to the logical model documentation.
 
 Example:
 
-XML definition of the profile for severity extension element in Adverse Event was incorrectly listed as 0..* rather than 0..1
+XML definition of the profile for severity extension element in Adverse Event was incorrectly listed as `0..*` rather than 0..1
 as defined in the extension definition.
 
 Source: http://hl7.org/fhir/DSTU2/qicore/qicore-adverseevent.profile.xml.html
