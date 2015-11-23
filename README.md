@@ -7,11 +7,11 @@ Part of FHIR are profiles that define the structure of a resource (e.g. Conditio
 Profiles can be represented in source-form in the Excel XML Spreadsheet 2003 format (aka SpreadsheetML) or
 in the published form as XML with the http://hl7.org/fhir namespace.
 
-This project is collection of tools for authors of FHIR profiles to automate
-tasks such as validation and supplemental documentation generation.
+This project is a collection of tools for authors of FHIR profiles to automate
+tasks such as validation, supplemental documentation generation and others.
 First set of tools are for source profiles in SpreadsheetML format,
 which are used in FHIR to define base resources and associated profiles. Second type of tools
-include tools to parse the FHIR XML Profiles which are published as part of the specification.
+are able to parse the FHIR XML Profiles, which are published as part of the specification.
 
 Anybody creating profiles off the continuous integration branch of fhir-svn repo
 has had to deal with changes in the base resources and needs to reflect those changes
@@ -81,15 +81,20 @@ the following 4 properties:
    which includes all FHIR profiles, extensions, valuesets, QICore implementation guide, etc.
  * **profilePattern** - regular expression for file name matching used to include
    only those profiles of interest in processing and skip all others.
- * **profileRules** - profile rules and explicit exceptions (e.g. cqf-rules.dat).
-   This is optional but strongly recommended.
-   
+ * **profileRules** - profile rules and explicit exceptions (e.g. cqf-rules.dat). (Optional)
+   This is optional but strongly recommended if using the FhirProfileValidator.
+
+Note that either fhirSourceDir and/or fhirPublishDir property must be specified.
+One or both is required depending on which tools are used. For example, FhirProfileValidator
+uses the **fhirSourceDir** property and QuickHtmlGenerator uses published profiles located in 
+**fhirPublishDir**.
+
 See also [Customizing Validation Rules](customRules.md).
 
 Now to run the validator with config.dat, run `validate` task in gradle:
 
      gradlew validate
-	 
+
 To generate HTML javadoc-like documentation for FHIR profiles as classes run `runHtml` task:
 
      gradlew runHtml
