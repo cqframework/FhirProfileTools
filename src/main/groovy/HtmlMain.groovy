@@ -1,7 +1,9 @@
 File sourceDir = FhirUtils.getSourceDir()
+if (!sourceDir) throw new IllegalArgumentException("fhirSourceDir property is required")
+
 def pat = FhirUtils.getProfilePattern()
 FhirProfileHtmlGenerator checker = new FhirProfileHtmlGenerator(pat)
-checker.includeMustSupportOnly = false // include all fields
+// checker.includeMustSupportOnly = false // false includes all fields
 checker.setup()
 try {
   sourceDir.listFiles().each { file ->

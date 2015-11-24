@@ -2,14 +2,15 @@
 
 // location of published FHIR specification (aka FHIR website)
 File publishDir = FhirUtils.getPublishDir()
+if (!publishDir) throw new IllegalArgumentException("fhirPublishDir property is required")
 
 println "source: " + publishDir
 
 File qicoreDir = new File(publishDir, 'qicore')
-if (publishDir == null || !qicoreDir.isDirectory()) throw new Exception("QICORE profile directory not found")
+if (!qicoreDir.isDirectory()) throw new IllegalArgumentException("QICORE profile directory not found")
 
 def gen = new QuickHtmlGenerator(publishDir)
-gen.devMode = true // disable for publishing and formal delivery
+// gen.devMode = true // disable for publishing and formal delivery
 gen.setup()
 gen.loadExtensions()
 
