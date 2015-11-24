@@ -5,7 +5,7 @@ The [FHIR](http://www.hl7.org/implement/standards/fhir/) (Fast Healthcare Intero
 Specification is a standard for exchanging healthcare information electronically. 
 Part of FHIR are profiles that define the structure of a resource (e.g. Condition, Patient, Procedure, etc.).
 Profiles can be represented in source-form in the Excel XML Spreadsheet 2003 format (aka SpreadsheetML) or
-in the published form as XML with the http://hl7.org/fhir namespace.
+in the published form as XML with the `http://hl7.org/fhir` namespace.
 
 This project is a collection of tools for authors of FHIR profiles to automate
 tasks such as validation, supplemental documentation generation and others.
