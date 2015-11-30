@@ -284,7 +284,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     //println typeCodes // [id]
     println()
     println "types: $typeCheck"
-    // [Address, Age, Annotation, Attachment, ContactPoint, Duration, HumanName, Identifier, Ratio, SampledData, Timing, code, id, oid, positiveInt, unsignedInt]
+    // [Element, base64Binary, code, id, oid, positiveInt, unsignedInt] // as of 30-Nov-2015
     System.exit(0)
   }
 
@@ -1080,7 +1080,8 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         isExtension = true
       else if (path.endsWith(".extension") || path.endsWith('.modifierExtension')) {
         isExtension = true
-        printf "WARN: element has .extension suffix but not extension type??? path=%s name=%s%n", elt.getPath(), elt.getName()
+        printf "WARN: element has .extension suffix but not extension type??? path=%s name=%s type=%s%n", elt.getPath(), elt.getName(),
+                elt.hasType() ? elt.getType().get(0).getCode() : "<null>"
       }
 
       if (isExtension) {
@@ -1580,7 +1581,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             //sb.append('&gt;')
           }
           def types = sb.toString()
-          if (listType || types.contains('<')) {
+          if (listType || types.contains('<') || types.contains('&lt;')) {
             if (listType) {
               types = types + ">"
             }
