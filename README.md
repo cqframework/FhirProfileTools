@@ -64,10 +64,10 @@ listed above.
 
 # Running
 
-The FHIR-svn build repository with profile source files is required to run the tools.
-Instructions to access the FHIR gForge Subversion project can be found at
-http://gforge.hl7.org/gf/project/fhir including anonymous access. Also, a git mirror of the project
-is available at https://github.com/hl7-fhir/fhir-svn.
+Local copy of the FHIR-svn build repository with profile source files is required to run some of the tools
+(other tools require the published FHIR profiles in XML format). Instructions to access the FHIR gForge
+Subversion project can be found at http://gforge.hl7.org/gf/project/fhir including anonymous access. Also,
+a git mirror of the project is available at https://github.com/hl7-fhir/fhir-svn.
 
 To run on FHIR profiles you first need to create a `config.dat` file in top-level
 of project that points to the location of resources and profiles. This normally
