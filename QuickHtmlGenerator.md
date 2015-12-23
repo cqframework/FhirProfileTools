@@ -1,6 +1,6 @@
 # QUICK HTML Generator
 
-The QUICK model generator creates custom Javadoc-like documentation for QICore FHIR profiles
+The Quality Information and Clinical Knowledge (QUICK) model generator creates custom Javadoc-like documentation for QICore FHIR profiles
 using `runQuickHtml` task. Output is created in "html" folder of the FHIR Profile Tools project folder.
 
 ## Introduction
