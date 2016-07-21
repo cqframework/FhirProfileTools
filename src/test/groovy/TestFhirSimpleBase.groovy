@@ -1,4 +1,5 @@
-import org.hl7.fhir.instance.model.StructureDefinition
+import org.hl7.fhir.dstu3.model.StructureDefinition
+import org.junit.Ignore
 import org.junit.Test
 
 /**
@@ -47,7 +48,7 @@ class TestFhirSimpleBase extends FhirSimpleBase {
     // println "path=" + elt.getPath()
     def type = elt.hasType() ? elt.getType().get(0) : null
     assert type && type.getCode() == 'Extension'
-    assert getReference(elt.getBinding()) == 'http://hl7.org/fhir/ValueSet/v3-ActReason'
+    assert getReference(elt.getBinding()) == 'http://hl7.org/fhir/ValueSet/qicore-referralrequest-reason-rejected'
     String extProfile = getProfile(type)
     // println "profile=$extProfile"
     def extProfileDef = createExtensionDef(elt, extProfile)
@@ -67,9 +68,9 @@ class TestFhirSimpleBase extends FhirSimpleBase {
       def profile = (StructureDefinition)resource
       def resName = getResourceName(profile)
       //println resName
-      if (profile.hasConstrainedType()) {
-        // println "ConstrainedType=" + profile.getConstrainedType()
-        assert resName == profile.getConstrainedType()
+      if (profile.hasType()) {
+        // println "Type=" + profile.getType()
+        assert resName == profile.getType()
       }
       profile.getDifferential().getElement().each{ elt ->
         // check elements
