@@ -13,12 +13,12 @@
 import groovy.transform.TypeChecked
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang.StringUtils
-import org.hl7.fhir.instance.model.Bundle
-import org.hl7.fhir.instance.model.ElementDefinition
-import org.hl7.fhir.instance.model.ElementDefinition.TypeRefComponent
-import org.hl7.fhir.instance.model.ElementDefinition.ElementDefinitionBindingComponent
-import org.hl7.fhir.instance.model.StructureDefinition
-import org.hl7.fhir.instance.model.ValueSet
+import org.hl7.fhir.dstu3.model.Bundle
+import org.hl7.fhir.dstu3.model.ElementDefinition
+import org.hl7.fhir.dstu3.model.ElementDefinition.TypeRefComponent
+import org.hl7.fhir.dstu3.model.ElementDefinition.ElementDefinitionBindingComponent
+import org.hl7.fhir.dstu3.model.StructureDefinition
+import org.hl7.fhir.dstu3.model.ValueSet
 
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
@@ -68,7 +68,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
    * base URL where FHIR spec is published;
    * required to reference valuesets in element bindings
    */
-  static final String baseUrl = 'http://hl7.org/fhir/DSTU2/'
+  static final String baseUrl = 'http://hl7.org/fhir/STU3/'
   //static final String baseUrl = 'http://hl7-fhir.github.io/'
   //static final String baseUrl = 'http://hl7.org/fhir/2015May/' // DSTU2 ballot snapshot
 
@@ -667,7 +667,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                 profileUrl = parts[1]
                 elt.setName(name)
                 println "XX: match name=$name profile=$profileUrl"
-                if (!typeDef.hasProfile()) typeDef.addProfile(profileUrl)
+                if (!typeDef.hasProfile()) typeDef.setProfile(profileUrl)
 				else println "XX: already has a profile " + typeDef.getProfile()
               } else profileUrl = null // ERROR
 			  // nationality.period
@@ -745,7 +745,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
           // bogus element missing name but has profile value in type.
           // for now these elements must be ignored
           // workaround for http://gforge.hl7.org/gf/project/fhir/tracker/?action=TrackerItemEdit&tracker_item_id=8729
-          printf "WARN: extext? path=%s name=%s profile=%s%n", elt.getPath(), elt.getName(), typeDef?.getProfile().get(0).getValue()
+          printf "WARN: extext? path=%s name=%s profile=%s%n", elt.getPath(), elt.getName(), typeDef?.getProfile()
           return // skip this bogus element
         }
 

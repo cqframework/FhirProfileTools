@@ -12,14 +12,14 @@
 import groovy.transform.TypeChecked
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang.StringUtils
-import org.hl7.fhir.instance.formats.XmlParser
-import org.hl7.fhir.instance.model.ElementDefinition
-import org.hl7.fhir.instance.model.ElementDefinition.ElementDefinitionBindingComponent
-import org.hl7.fhir.instance.model.ElementDefinition.TypeRefComponent
+import org.hl7.fhir.dstu3.formats.XmlParser
+import org.hl7.fhir.dstu3.model.ElementDefinition
+import org.hl7.fhir.dstu3.model.ElementDefinition.ElementDefinitionBindingComponent
+import org.hl7.fhir.dstu3.model.ElementDefinition.TypeRefComponent
 
-import org.hl7.fhir.instance.model.StructureDefinition
-import org.hl7.fhir.instance.model.Resource
-import org.hl7.fhir.instance.model.UriType
+import org.hl7.fhir.dstu3.model.StructureDefinition
+import org.hl7.fhir.dstu3.model.Resource
+import org.hl7.fhir.dstu3.model.UriType
 
 /**
  * Base set of common FHIR helper methods in a base class from which
@@ -66,9 +66,9 @@ class FhirSimpleBase {
         <name value="DAF-Condition"/>
         ...
     */
-    if (profile.hasConstrainedType()) {
-      // e.g. QICore-Procedure constrainedType=Procedure
-      return profile.getConstrainedType()
+    if (profile.hasType()) {
+      // e.g. QICore-Procedure type=Procedure
+      return profile.getType()
     }
     List<ElementDefinition> snapshot = profile.hasSnapshot() && profile.getSnapshot().hasElement() ? profile.getSnapshot().getElement() : null
     if (snapshot) {
@@ -93,7 +93,7 @@ class FhirSimpleBase {
       }
     }
     // println "X: getResourceName id=" + profile.getId()
-    String resourceName = profile.getBase() // e.g. http://hl7.org/fhir/Profile/Observation
+    String resourceName = profile.getBaseDefinition() // e.g. http://hl7.org/fhir/Profile/Observation
     if (resourceName == null) throw new IllegalStateException()
     int ind = resourceName.lastIndexOf('/')
     if (ind > 0) resourceName = resourceName.substring(ind + 1)
@@ -159,12 +159,8 @@ class FhirSimpleBase {
 
   @TypeChecked
   static String getProfile(TypeRefComponent type) {
-    // NOTE: return type in getProfile() changed after May2015 from String to List<UriType> (fix)
-    for (UriType item : type.getProfile()) {
-      String val = item.getValueAsString()
-      if (StringUtils.isNotBlank(val)) return val
-    }
-    return ''
+    // STU3 changed this to a singelton...
+    return type.getProfile()
   }
 
   /**
