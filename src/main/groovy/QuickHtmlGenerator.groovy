@@ -12,6 +12,7 @@
 */
 import groovy.transform.TypeChecked
 import org.apache.commons.io.IOUtils
+import org.apache.commons.lang.StringEscapeUtils
 import org.apache.commons.lang.StringUtils
 import org.hl7.fhir.dstu3.model.Bundle
 import org.hl7.fhir.dstu3.model.ElementDefinition
@@ -134,8 +135,40 @@ class QuickHtmlGenerator extends FhirSimpleBase {
     ]
 
     static final Map qicoreMapping = [
-            'qicore-adverseevent' : 'QiCoreAdverseEvent',
-            'qicore-allergyintolerance' : 'QiCoreAdverseEvent'
+            'qicore-adverseevent' : 'AdverseEvent',
+            'qicore-allergyintolerance' : 'AllergyIntolerance',
+            'qicore-bodysite' : 'BodySite',
+            'qicore-claim' : 'Claim',
+            'qicore-communication' : 'Communication',
+            'qicore-communicationrequest' : 'CommunicationRequest',
+            'qicore-condition' : 'Condition',
+            'qicore-coverage' : 'Coverage',
+            'qicore-device' : 'Device',
+            'qicore-deviceusestatement' : 'DeviceUseStatement',
+            'qicore-diagnosticreport' : 'DiagnosticReport',
+            'qicore-encounter' : 'Encounter',
+            'qicore-familymemberhistory' : 'FamilyMemberHistory',
+            'qicore-flag' : 'Flag',
+            'qicore-goal' : 'Goal',
+            'qicore-imagingstudy' : 'ImagingStudy',
+            'qicore-immunization' : 'Immunization',
+            'qicore-immunizationrec' : 'ImmunizationRecommendation',
+            'qicore-location' : 'Location',
+            'qicore-medication' : 'Medication',
+            'qicore-medicationadministration' : 'MedicationAdministration',
+            'qicore-medicationdispense' : 'MedicationDispense',
+            'qicore-medicationrequest' : 'MedicationRequest',
+            'qicore-medicationstatement' : 'MedicationStatement',
+            'qicore-observation' : 'Observation',
+            'qicore-organization' : 'Organization',
+            'qicore-patient' : 'Patient',
+            'qicore-practitioner' : 'Practitioner',
+            'qicore-procedure' : 'Procedure',
+            'qicore-procedurerequest' : 'ProcedureRequest',
+            'qicore-referralrequest' : 'ReferralRequest',
+            'qicore-relatedperson' : 'RelatedPerson',
+            'qicore-specimen' : 'Specimen',
+            'qicore-substance' : 'Substance'
     ]
 
     static final Map<String, String> specialCaseElements = [
@@ -158,7 +191,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             'Range'              : 'interval<Quantity>',
             'time'               : 'Time',
             'markdown'           : 'String',
-            //'Quantity'           : 'Quantity',
+            'Quantity'           : 'Quantity',
             'uri'                : 'Uri',
     ]
 
@@ -184,21 +217,14 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
         // e.g. http://hl7-fhir.github.io/datatypes.html#CodeableConcept
         primTypes.addAll([
-                //'Address', //moved to complex list
-                //'Age',
-                //'Attachment',
                 'base64Binary',
                 'boolean',
                 'code',
                 'Coding',
                 'CodeableConcept',
-                //'ContactPoint',
                 'date',
                 'dateTime',
                 'decimal',
-                //'Duration',
-                //'HumanName',
-                //'Identifier',
                 "id",
                 'instant',
                 'integer',
@@ -207,13 +233,9 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                 'positiveInt',
                 'oid',
                 'Period',
-                //'Quantity',
                 'Range',
-                //'Ratio',
-                //'SampledData',
                 'string',
                 'time',
-                //'Timing',
                 'uri',
         ])
 
@@ -223,6 +245,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                 'Annotation',
                 'Attachment',
                 'ContactPoint',
+                'Dosage',
                 'Duration',
                 'HumanName',
                 'Identifier',
@@ -339,7 +362,11 @@ class QuickHtmlGenerator extends FhirSimpleBase {
             return
         }
         //? classes.add(className) // use profiles.keySet()
-        profiles.put(className, profile)
+        if (qicoreMapping.containsKey(className)) {
+            className = qicoreMapping.get(className);
+            profiles.put(className, profile)
+        }
+
         // add URI mapping to class name;
         // e.g. http://hl7.org/fhir/StructureDefinition/patient-qicore-patient => Patient
         if (profile.hasUrl()) uriToClassName.put(profile.getUrl(), className)
@@ -977,6 +1004,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
                                 def sd = extProfileDef.getStructure()
                                 if (sd) {
                                     String desc = sd.getDescription()?.trim()
+
                                     if (desc) {
                                         childProfile.setDescription(desc)
                                     }
@@ -1672,6 +1700,7 @@ class QuickHtmlGenerator extends FhirSimpleBase {
         // TODO: custom attribute for QICore label
 
         if (desc || sb.length() != 0) {
+            desc = org.apache.commons.lang.StringEscapeUtils.escapeHtml(desc)
             html.blockquote {
                 div(class: 'block') {
                     // check if profile overrides the definition
@@ -1720,7 +1749,9 @@ class QuickHtmlGenerator extends FhirSimpleBase {
 
             if (ref) {
                 String href, bindingName = '', bindingDef
-                if (binding.hasDescription()) bindingDef = StringUtils.trimToNull(binding.getDescription())
+                if (binding.hasDescription()) {
+                    bindingDef = StringEscapeUtils.escapeHtml(StringUtils.trimToNull(binding.getDescription()))
+                }
                 // NOTE: new v3 URL as of 13-Jul-2015 http://hl7.org/fhir/ValueSet/v3-ActReason
                 if (ref =~ /^http:\/\/hl7.org\/fhir\/ValueSet\//) {
                     //if (ref =~ /^http:\/\/hl7.org\/fhir\/(v[23]\/)?vs\//) { .// July-13 Valueset URLs changed /vs/ => /Valueset/
