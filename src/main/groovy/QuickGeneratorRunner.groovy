@@ -6,7 +6,8 @@ if (!publishDir) throw new IllegalArgumentException("fhirPublishDir property is 
 
 println "source: " + publishDir
 
-File qicoreDir = new File(publishDir, 'qicore')
+File qicoreDir = new File('/Users/christopherschuler/Documents/workspace/harmoniq/repos/cqf/qi-core/output')
+println "qi-core source: " + qicoreDir
 if (!qicoreDir.isDirectory()) throw new IllegalArgumentException("QICORE profile directory not found")
 
 def gen = new QuickHtmlGenerator(publishDir)
@@ -14,7 +15,8 @@ def gen = new QuickHtmlGenerator(publishDir)
 gen.setup()
 gen.loadExtensions()
 
-qicoreDir.eachFileMatch(~/.*profile.xml$/, { file ->
+qicoreDir.eachFileMatch(~/StructureDefinition-qicore-.*.xml$/, { file ->
+  println "processing: " + file
   gen.process(file)
 })
 

@@ -1,5 +1,14 @@
 build/
+out/
 .gradle/
 .idea/
 *.docx
 /config.dat
+*.DS_STORE
+*.iml
+html/pages/*.html
+html/resources/
+html/allclasses-frame.html
+html/index.html
+html/index-files.html
+html/overview-summary.html

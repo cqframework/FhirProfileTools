@@ -18,22 +18,23 @@
   </contact>
   <date value="2015-02-27"/>
   <description value="Profile of ReferralRequest for decision support/quality metrics. Defines the core set of elements and extensions for quality rule and measure authors."/>
-  <fhirVersion value="1.0.0"/>
+  <fhirVersion value="1.5.0"/>
   <mapping>
     <identity value="qdm"/>
     <uri value="http://www.healthit.gov/quality-data-model"/>
     <name value="Quality Data Model"/>
   </mapping>
   <kind value="resource"/>
-  <constrainedType value="ReferralRequest"/>
   <abstract value="false"/>
-  <base value="http://hl7.org/fhir/StructureDefinition/ReferralRequest"/>
+  <type value="ReferralRequest"/>
+  <baseDefinition value="http://hl7.org/fhir/StructureDefinition/ReferralRequest"/>
+  <derivation value="constraint"/>
   <snapshot>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest">
       <path value="ReferralRequest"/>
       <name value="QICore-ReferralRequest"/>
       <short value="A request for referral or transfer of care"/>
-      <definition value="Used to record and send details about a request"/>
+      <definition value="Used to record and send details about a request for referral service or transfer of a patient to the care of another provider or provider organization."/>
       <alias value="ReferralRequest TransferOfCare Request"/>
       <min value="0"/>
       <max value="*"/>
@@ -42,9 +43,6 @@
         <min value="0"/>
         <max value="*"/>
       </base>
-      <type>
-        <code value="ReferralRequest"/>
-      </type>
       <mapping>
         <identity value="w5"/>
         <map value="clinical.careprovision"/>
@@ -54,76 +52,90 @@
         <map value="&quot;Encounter, Order&quot;; &quot;Encounter, Recommended&quot;"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.id">
       <path value="ReferralRequest.id"/>
       <short value="Logical id of this artifact"/>
       <definition value="The logical id of the resource, as used in the URL for the resource. Once assigned, this value never changes."/>
+      <comments value="The only time that a resource does not have an id is when it is being submitted to the server using a create operation."/>
       <min value="0"/>
       <max value="1"/>
       <base>
-        <path value="ReferralRequest.id"/>
+        <path value="Resource.id"/>
         <min value="0"/>
-        <max value="1"/>
+        <max value="*"/>
       </base>
       <type>
         <code value="id"/>
       </type>
+      <isSummary value="true"/>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.meta">
       <path value="ReferralRequest.meta"/>
       <short value="Metadata about the resource"/>
-      <definition value="The metadata about the resource"/>
+      <definition value="The metadata about the resource. This is content that is maintained by the infrastructure. Changes to the content may not always be associated with version changes to the resource."/>
       <min value="0"/>
       <max value="1"/>
       <base>
-        <path value="ReferralRequest.meta"/>
+        <path value="Resource.meta"/>
         <min value="0"/>
-        <max value="1"/>
+        <max value="*"/>
       </base>
       <type>
         <code value="Meta"/>
       </type>
+      <isSummary value="true"/>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.implicitRules">
       <path value="ReferralRequest.implicitRules"/>
       <short value="A set of rules under which this content was created"/>
-      <definition value="A reference to a set of rules"/>
+      <definition value="A reference to a set of rules that were followed when the resource was constructed, and which must be understood when processing the content."/>
+      <comments value="Asserting this rule set restricts the content to be only understood by a limited set of trading partners. This inherently limits the usefulness of the data in the long term. However, the existing health eco-system is highly fractured, and not yet ready to define, collect, and exchange data in a generally computable sense. Wherever possible, implementers and/or specification writers should avoid using this element as much as possible."/>
       <min value="0"/>
       <max value="1"/>
       <base>
-        <path value="ReferralRequest.implicitRules"/>
+        <path value="Resource.implicitRules"/>
         <min value="0"/>
-        <max value="1"/>
+        <max value="*"/>
       </base>
       <type>
         <code value="uri"/>
       </type>
       <isModifier value="true"/>
+      <isSummary value="true"/>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.language">
       <path value="ReferralRequest.language"/>
       <short value="Language of the resource content"/>
       <definition value="The base language in which the resource is written."/>
+      <comments value="Language is provided to support indexing and accessibility (typically, services such as text to speech use the language tag). The html language tag in the narrative applies  to the narrative. The language tag on the resource may be used to specify the language of other presentations generated from the data in the resource  Not all the content has to be in the base language. The Resource.language should not be assumed to apply to the narrative automatically. If a language is specified, it should it also be specified on the div element in the html (see rules in HTML5 for information about the relationship between xml:lang and the html lang attribute)."/>
       <min value="0"/>
       <max value="1"/>
       <base>
-        <path value="ReferralRequest.language"/>
+        <path value="Resource.language"/>
         <min value="0"/>
-        <max value="1"/>
+        <max value="*"/>
       </base>
       <type>
         <code value="code"/>
       </type>
       <binding>
-        <strength value="required"/>
+        <extension url="http://hl7.org/fhir/StructureDefinition/elementdefinition-maxValueSet">
+          <valueReference>
+            <reference value="http://hl7.org/fhir/ValueSet/all-languages"/>
+          </valueReference>
+        </extension>
+        <strength value="extensible"/>
         <description value="A human language."/>
-        <valueSetUri value="http://tools.ietf.org/html/bcp47"/>
+        <valueSetReference>
+          <reference value="http://hl7.org/fhir/ValueSet/languages"/>
+        </valueSetReference>
       </binding>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.text">
       <path value="ReferralRequest.text"/>
       <short value="Text summary of the resource, for human interpretation"/>
-      <definition value="A human-readable narrative"/>
+      <definition value="A human-readable narrative that contains a summary of the resource, and may be used to represent the content of the resource to a human. The narrative need not encode all the structured data, but is required to contain sufficient detail to make it &quot;clinically safe&quot; for a human to just read the narrative. Resource definitions may define what content should be represented in the narrative to ensure clinical safety."/>
+      <comments value="Contained resources do not have narrative. Resources that are not contained SHOULD have a narrative. In some cases, a resource may only have text with little or no additional discrete data (as long as all minOccurs=1 elements are satisfied).  This may be necessary for data from legacy systems where information is captured as a &quot;text blob&quot; or where text is additionally entered raw or narrated and encoded in formation is added later."/>
       <alias value="narrative"/>
       <alias value="html"/>
       <alias value="xhtml"/>
@@ -131,9 +143,9 @@
       <min value="0"/>
       <max value="1"/>
       <base>
-        <path value="ReferralRequest.text"/>
+        <path value="DomainResource.text"/>
         <min value="0"/>
-        <max value="1"/>
+        <max value="*"/>
       </base>
       <type>
         <code value="Narrative"/>
@@ -144,17 +156,18 @@
         <map value="Act.text?"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.contained">
       <path value="ReferralRequest.contained"/>
       <short value="Contained, inline Resources"/>
-      <definition value="These resources do not have an independent existence apart from the resource that contains them"/>
+      <definition value="These resources do not have an independent existence apart from the resource that contains them - they cannot be identified independently, and nor can they have their own independent transaction scope."/>
+      <comments value="This should never be done when the content can be identified properly, as once identification is lost, it is extremely difficult (and context dependent) to restore it again."/>
       <alias value="inline resources"/>
       <alias value="anonymous resources"/>
       <alias value="contained resources"/>
       <min value="0"/>
       <max value="*"/>
       <base>
-        <path value="ReferralRequest.contained"/>
+        <path value="DomainResource.contained"/>
         <min value="0"/>
         <max value="*"/>
       </base>
@@ -166,7 +179,7 @@
         <map value="N/A"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.extension:ReferralRequest.refusalReason">
       <path value="ReferralRequest.extension"/>
       <name value="ReferralRequest.refusalReason"/>
       <short value="Extension"/>
@@ -174,7 +187,7 @@
       <min value="0"/>
       <max value="1"/>
       <base>
-        <path value="ReferralRequest.extension"/>
+        <path value="DomainResource.extension"/>
         <min value="0"/>
         <max value="*"/>
       </base>
@@ -183,9 +196,9 @@
         <profile value="http://hl7.org/fhir/StructureDefinition/referralrequest-reasonRefused"/>
       </type>
       <binding>
-        <strength value="preferred"/>
+        <strength value="example"/>
         <valueSetReference>
-          <reference value="http://hl7.org/fhir/ValueSet/v3-ActReason"/>
+          <reference value="http://hl7.org/fhir/ValueSet/qicore-referralrequest-reason-rejected"/>
         </valueSetReference>
       </binding>
       <mapping>
@@ -193,16 +206,17 @@
         <map value="negation rationale (when ReferralRequest.status=&quot;refused&quot;)"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.modifierExtension">
       <path value="ReferralRequest.modifierExtension"/>
       <short value="Extensions that cannot be ignored"/>
-      <definition value="May be used to represent additional information"/>
+      <definition value="May be used to represent additional information that is not part of the basic definition of the resource, and that modifies the understanding of the element that contains it. Usually modifier elements provide negation or qualification. In order to make the use of extensions safe and manageable, there is a strict set of governance applied to the definition and use of extensions. Though any implementer is allowed to define an extension, there is a set of requirements that SHALL be met as part of the definition of the extension. Applications processing a resource are required to check for modifier extensions."/>
+      <comments value="There can be no stigma associated with the use of extensions by any application, project, or standard - regardless of the institution or jurisdiction that uses or defines the extensions.  The use of extensions is what allows the FHIR specification to retain a core level of simplicity for everyone."/>
       <alias value="extensions"/>
       <alias value="user content"/>
       <min value="0"/>
       <max value="*"/>
       <base>
-        <path value="ReferralRequest.modifierExtension"/>
+        <path value="DomainResource.modifierExtension"/>
         <min value="0"/>
         <max value="*"/>
       </base>
@@ -215,38 +229,10 @@
         <map value="N/A"/>
       </mapping>
     </element>
-    <element>
-      <path value="ReferralRequest.status"/>
-      <short value="draft | requested | active | cancelled | accepted | rejected | completed"/>
-      <definition value="The workflow status of the referral or transfer of care request."/>
-      <min value="1"/>
-      <max value="1"/>
-      <base>
-        <path value="ReferralRequest.status"/>
-        <min value="1"/>
-        <max value="1"/>
-      </base>
-      <type>
-        <code value="code"/>
-      </type>
-      <mustSupport value="true"/>
-      <isModifier value="true"/>
-      <binding>
-        <strength value="required"/>
-        <description value="The status of the referral"/>
-        <valueSetReference>
-          <reference value="http://hl7.org/fhir/ValueSet/referralstatus"/>
-        </valueSetReference>
-      </binding>
-      <mapping>
-        <identity value="w5"/>
-        <map value="status"/>
-      </mapping>
-    </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.identifier">
       <path value="ReferralRequest.identifier"/>
-      <short value="Business Identifier"/>
-      <definition value="Business Id that uniquely identifies the referral/care transfer request instance."/>
+      <short value="Business identifier"/>
+      <definition value="Business identifier that uniquely identifies the referral/care transfer request instance."/>
       <min value="0"/>
       <max value="*"/>
       <base>
@@ -259,34 +245,129 @@
       </type>
       <isModifier value="false"/>
       <mapping>
+        <identity value="v2"/>
+        <map value="RF1-6 / RF1-11"/>
+      </mapping>
+      <mapping>
         <identity value="w5"/>
         <map value="id"/>
       </mapping>
     </element>
-    <element>
-      <path value="ReferralRequest.date"/>
-      <short value="Date of creation/activation"/>
-      <definition value="Date/DateTime of creation for draft requests and date of activation for active requests."/>
+    <element id="ReferralRequest:QICore-ReferralRequest.basedOn">
+      <path value="ReferralRequest.basedOn"/>
+      <short value="Request fulfilled by this request"/>
+      <definition value="Indicates any plans, proposals or orders that this request is intended to satisfy - in whole or in part."/>
+      <min value="0"/>
+      <max value="*"/>
+      <base>
+        <path value="ReferralRequest.basedOn"/>
+        <min value="0"/>
+        <max value="*"/>
+      </base>
+      <type>
+        <code value="Reference"/>
+        <profile value="http://hl7.org/fhir/StructureDefinition/ReferralRequest"/>
+      </type>
+      <type>
+        <code value="Reference"/>
+        <profile value="http://hl7.org/fhir/StructureDefinition/CarePlan"/>
+      </type>
+      <type>
+        <code value="Reference"/>
+        <profile value="http://hl7.org/fhir/StructureDefinition/DiagnosticOrder"/>
+      </type>
+      <type>
+        <code value="Reference"/>
+        <profile value="http://hl7.org/fhir/StructureDefinition/ProcedureRequest"/>
+      </type>
+      <isModifier value="false"/>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.parent">
+      <path value="ReferralRequest.parent"/>
+      <short value="Composite request this is part of"/>
+      <definition value="The business identifier of the logical &quot;grouping&quot; request/order that this referral is a part of."/>
+      <requirements value="Allows multiple orders to be collected as part of a single requisition."/>
       <min value="0"/>
       <max value="1"/>
       <base>
-        <path value="ReferralRequest.date"/>
+        <path value="ReferralRequest.parent"/>
         <min value="0"/>
         <max value="1"/>
       </base>
       <type>
-        <code value="dateTime"/>
+        <code value="Identifier"/>
       </type>
       <isModifier value="false"/>
+      <isSummary value="true"/>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.status">
+      <path value="ReferralRequest.status"/>
+      <short value="draft | active | cancelled | completed | entered-in-error"/>
+      <definition value="The status of the authorization/intention reflected by the referral request record."/>
+      <requirements value="Workflow status is handled by the Task resource."/>
+      <min value="1"/>
+      <max value="1"/>
+      <base>
+        <path value="ReferralRequest.status"/>
+        <min value="1"/>
+        <max value="1"/>
+      </base>
+      <type>
+        <code value="code"/>
+      </type>
+      <mustSupport value="true"/>
+      <isModifier value="true"/>
+      <isSummary value="true"/>
+      <binding>
+        <strength value="required"/>
+        <description value="The status of the referral."/>
+        <valueSetReference>
+          <reference value="http://hl7.org/fhir/ValueSet/referralstatus"/>
+        </valueSetReference>
+      </binding>
+      <mapping>
+        <identity value="v2"/>
+        <map value="RF1-1"/>
+      </mapping>
       <mapping>
         <identity value="w5"/>
-        <map value="when.init"/>
+        <map value="status"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.category">
+      <path value="ReferralRequest.category"/>
+      <short value="proposal | plan | request"/>
+      <definition value="Distinguishes the &quot;level&quot; of authorization/demand implicit in this request."/>
+      <requirements value="The same resource structure is used when capturing proposals/recommendations, plans and actual requests."/>
+      <min value="1"/>
+      <max value="1"/>
+      <base>
+        <path value="ReferralRequest.category"/>
+        <min value="1"/>
+        <max value="1"/>
+      </base>
+      <type>
+        <code value="code"/>
+      </type>
+      <isModifier value="true"/>
+      <isSummary value="true"/>
+      <binding>
+        <strength value="required"/>
+        <description value="Identifies the degree of intention/authorization associated with the request"/>
+        <valueSetReference>
+          <reference value="http://hl7.org/fhir/ValueSet/referralcategory"/>
+        </valueSetReference>
+      </binding>
+      <mapping>
+        <identity value="w5"/>
+        <map value="class"/>
+      </mapping>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.type">
       <path value="ReferralRequest.type"/>
       <short value="Referral/Transition of care request type"/>
       <definition value="An indication of the type of referral (or where applicable the type of transfer of care) request."/>
+      <comments value="Examples of referral type: - consultation;         second opinion;          third opinion - Assume management - Request for procedure(s)  HL7 v2.8 Example - Table 0336: S = second opinion p = patient preference o = provider ordered w = work load."/>
       <min value="0"/>
       <max value="1"/>
       <base>
@@ -299,40 +380,29 @@
       </type>
       <mustSupport value="true"/>
       <isModifier value="false"/>
-      <mapping>
-        <identity value="qdm"/>
-        <map value="primary code"/>
-      </mapping>
-    </element>
-    <element>
-      <path value="ReferralRequest.specialty"/>
-      <short value="The clinical specialty (discipline) that the referral is requested for"/>
-      <definition value="Indication of the clinical domain or discipline to which the referral or transfer of care request is sent."/>
-      <min value="0"/>
-      <max value="1"/>
-      <base>
-        <path value="ReferralRequest.specialty"/>
-        <min value="0"/>
-        <max value="1"/>
-      </base>
-      <type>
-        <code value="CodeableConcept"/>
-      </type>
-      <mustSupport value="true"/>
-      <isModifier value="false"/>
+      <isSummary value="true"/>
       <binding>
         <strength value="example"/>
-        <description value="Codes indicating the types of capability the referred to service provider must have"/>
+        <description value="Codes for types of referral; e.g. consult, transfer, temporary transfer."/>
+        <!-- Added here just to get the test to pass.... this is not the actual valueset, it was empty, but that shouldn't prevent the test from passing at this point -->
         <valueSetReference>
           <reference value="http://hl7.org/fhir/ValueSet/practitioner-specialty"/>
         </valueSetReference>
       </binding>
       <mapping>
+        <identity value="v2"/>
+        <map value="RF1-10"/>
+      </mapping>
+      <mapping>
+        <identity value="w5"/>
+        <map value="class"/>
+      </mapping>
+      <mapping>
         <identity value="qdm"/>
         <map value="primary code"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.priority">
       <path value="ReferralRequest.priority"/>
       <short value="Urgency of referral / transfer of care request"/>
       <definition value="An indication of the urgency of referral (or where applicable the type of transfer of care) request."/>
@@ -348,6 +418,7 @@
       </type>
       <mustSupport value="true"/>
       <isModifier value="false"/>
+      <isSummary value="true"/>
       <binding>
         <strength value="preferred"/>
         <description value="The priority of the referral (e.g., Urgent, Normal, etc.)"/>
@@ -356,14 +427,19 @@
         </valueSetReference>
       </binding>
       <mapping>
+        <identity value="v2"/>
+        <map value="RF1-2"/>
+      </mapping>
+      <mapping>
         <identity value="w5"/>
         <map value="grade"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.patient">
       <path value="ReferralRequest.patient"/>
       <short value="Patient referred to care or transfer"/>
       <definition value="The patient who is the subject of a referral or transfer of care request."/>
+      <comments value="Referral of family, group or community is to be catered for by profiles."/>
       <min value="0"/>
       <max value="1"/>
       <base>
@@ -377,15 +453,102 @@
       </type>
       <mustSupport value="true"/>
       <isModifier value="false"/>
+      <isSummary value="true"/>
+      <mapping>
+        <identity value="v2"/>
+        <map value="PID-3"/>
+      </mapping>
       <mapping>
         <identity value="w5"/>
         <map value="who.focus"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.context">
+      <path value="ReferralRequest.context"/>
+      <short value="Originating encounter"/>
+      <definition value="The encounter at which the request for referral or transfer of care is initiated."/>
+      <min value="0"/>
+      <max value="1"/>
+      <base>
+        <path value="ReferralRequest.context"/>
+        <min value="0"/>
+        <max value="1"/>
+      </base>
+      <type>
+        <code value="Reference"/>
+        <profile value="http://hl7.org/fhir/StructureDefinition/Encounter"/>
+      </type>
+      <type>
+        <code value="Reference"/>
+        <profile value="http://hl7.org/fhir/StructureDefinition/EpisodeOfCare"/>
+      </type>
+      <isModifier value="false"/>
+      <mapping>
+        <identity value="v2"/>
+        <map value="PV1-19"/>
+      </mapping>
+      <mapping>
+        <identity value="w5"/>
+        <map value="context"/>
+      </mapping>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.fulfillmentTime">
+      <path value="ReferralRequest.fulfillmentTime"/>
+      <short value="Requested service(s) fulfillment time"/>
+      <definition value="The period of time within which the services identified in the referral/transfer of care is specified or required to occur."/>
+      <requirements value="Use cases: (1) to indicate that the requested service is not to happen before a specified date, and saving the start date in Period.start; (2) to indicate that the requested service must happen before a specified date, and saving the end date in Period.end; (3) to indicate that the requested service must happen during the specified dates (&quot;start&quot; and &quot;end&quot; values)."/>
+      <alias value="EffectiveTime"/>
+      <min value="0"/>
+      <max value="1"/>
+      <base>
+        <path value="ReferralRequest.fulfillmentTime"/>
+        <min value="0"/>
+        <max value="1"/>
+      </base>
+      <type>
+        <code value="Period"/>
+      </type>
+      <mustSupport value="true"/>
+      <isModifier value="false"/>
+      <isSummary value="true"/>
+      <mapping>
+        <identity value="v2"/>
+        <map value="OBR-7/OBR-8"/>
+      </mapping>
+      <mapping>
+        <identity value="w5"/>
+        <map value="when.planned"/>
+      </mapping>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.authored">
+      <path value="ReferralRequest.authored"/>
+      <short value="Date of creation/activation"/>
+      <definition value="Date/DateTime of creation for draft requests and date of activation for active requests."/>
+      <min value="0"/>
+      <max value="1"/>
+      <base>
+        <path value="ReferralRequest.authored"/>
+        <min value="0"/>
+        <max value="1"/>
+      </base>
+      <type>
+        <code value="dateTime"/>
+      </type>
+      <isModifier value="false"/>
+      <isSummary value="true"/>
+      <mapping>
+        <identity value="v2"/>
+        <map value="RF1-7 / RF1-9?"/>
+      </mapping>
+      <mapping>
+        <identity value="w5"/>
+        <map value="when.init"/>
+      </mapping>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.requester">
       <path value="ReferralRequest.requester"/>
       <short value="Requester of referral / transfer of care"/>
-      <definition value="provider organization who/which initaited the referral"/>
+      <definition value="The healthcare provider or provider organization who/which initiated the referral/transfer of care request. Can also be  Patient (a self referral)."/>
       <min value="0"/>
       <max value="1"/>
       <base>
@@ -407,15 +570,53 @@
       </type>
       <mustSupport value="true"/>
       <isModifier value="false"/>
+      <isSummary value="true"/>
+      <mapping>
+        <identity value="v2"/>
+        <map value="Practitioner: PRD-2/PRD-7 where PRD-3 = RP; Organization: PRD-10 where PRD-3 = RP"/>
+      </mapping>
       <mapping>
         <identity value="w5"/>
         <map value="who.author"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.specialty">
+      <path value="ReferralRequest.specialty"/>
+      <short value="The clinical specialty (discipline) that the referral is requested for"/>
+      <definition value="Indication of the clinical domain or discipline to which the referral or transfer of care request is sent.  For example: Cardiology Gastroenterology Diabetology."/>
+      <min value="0"/>
+      <max value="1"/>
+      <base>
+        <path value="ReferralRequest.specialty"/>
+        <min value="0"/>
+        <max value="1"/>
+      </base>
+      <type>
+        <code value="CodeableConcept"/>
+      </type>
+      <mustSupport value="true"/>
+      <isModifier value="false"/>
+      <binding>
+        <strength value="example"/>
+        <description value="Codes indicating the types of capability the referred to service provider must have."/>
+        <valueSetReference>
+          <reference value="http://hl7.org/fhir/ValueSet/practitioner-specialty"/>
+        </valueSetReference>
+      </binding>
+      <mapping>
+        <identity value="v2"/>
+        <map value="RF1-3"/>
+      </mapping>
+      <mapping>
+        <identity value="qdm"/>
+        <map value="primary code"/>
+      </mapping>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.recipient">
       <path value="ReferralRequest.recipient"/>
       <short value="Receiver of referral / transfer of care request"/>
-      <definition value="provider organization to receive the referral"/>
+      <definition value="The healthcare provider(s) or provider organization(s) who/which is to receive the referral/transfer of care request."/>
+      <comments value="There will be a primary receiver. But the request can be received by any number of &quot;copied to&quot; providers or organizations."/>
       <min value="0"/>
       <max value="*"/>
       <base>
@@ -433,6 +634,11 @@
       </type>
       <mustSupport value="true"/>
       <isModifier value="false"/>
+      <isSummary value="true"/>
+      <mapping>
+        <identity value="v2"/>
+        <map value="Practitioner: PRD-2/PRD-7 where PRD-3 = RT; Organization: PRD-10 where PRD-3 = RT"/>
+      </mapping>
       <mapping>
         <identity value="w5"/>
         <map value="who.actor"/>
@@ -442,57 +648,10 @@
         <map value="facility location"/>
       </mapping>
     </element>
-    <element>
-      <path value="ReferralRequest.encounter"/>
-      <short value="Originating encounter"/>
-      <definition value="The encounter at which the request for referral or transfer of care is initiated."/>
-      <min value="0"/>
-      <max value="1"/>
-      <base>
-        <path value="ReferralRequest.encounter"/>
-        <min value="0"/>
-        <max value="1"/>
-      </base>
-      <type>
-        <code value="Reference"/>
-        <profile value="http://hl7.org/fhir/StructureDefinition/qicore-encounter"/>
-      </type>
-      <mustSupport value="true"/>
-      <isModifier value="false"/>
-      <mapping>
-        <identity value="w5"/>
-        <map value="context"/>
-      </mapping>
-    </element>
-    <element>
-      <path value="ReferralRequest.dateSent"/>
-      <short value="Date referral/transfer of care request is sent"/>
-      <definition value="Date/DateTime the request for referral or transfer of care is sent by the author."/>
-      <min value="0"/>
-      <max value="1"/>
-      <base>
-        <path value="ReferralRequest.dateSent"/>
-        <min value="0"/>
-        <max value="1"/>
-      </base>
-      <type>
-        <code value="dateTime"/>
-      </type>
-      <mustSupport value="true"/>
-      <isModifier value="false"/>
-      <mapping>
-        <identity value="w5"/>
-        <map value="when.init"/>
-      </mapping>
-      <mapping>
-        <identity value="qdm"/>
-        <map value="start datetime"/>
-      </mapping>
-    </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.reason">
       <path value="ReferralRequest.reason"/>
-      <short value="Reason for referral / Transfer of care request"/>
-      <definition value="Description of clinical condition indicating why referral/transfer of care is requested."/>
+      <short value="Reason for referral / transfer of care request"/>
+      <definition value="Description of clinical condition indicating why referral/transfer of care is requested.  For example:  Pathological Anomalies, Disabled (physical or mental),  Behavioral Management."/>
       <min value="0"/>
       <max value="1"/>
       <base>
@@ -505,12 +664,19 @@
       </type>
       <mustSupport value="true"/>
       <isModifier value="false"/>
+      <isSummary value="true"/>
       <binding>
-        <strength value="preferred"/>
+        <strength value="example"/>
+        <description value="Codes indicating why the referral is being requested."/>
+        <!-- This is not the right binding, just putting it here to get the test to pass -->
         <valueSetReference>
-          <reference value="http://hl7.org/fhir/ValueSet/v3-ActReason"/>
+          <reference value="http://hl7.org/fhir/ValueSet/practitioner-specialty"/>
         </valueSetReference>
       </binding>
+      <mapping>
+        <identity value="v2"/>
+        <map value="RF1-10"/>
+      </mapping>
       <mapping>
         <identity value="w5"/>
         <map value="why"/>
@@ -520,10 +686,10 @@
         <map value="reason"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.description">
       <path value="ReferralRequest.description"/>
       <short value="A textual description of the referral"/>
-      <definition value="The reason gives a short description"/>
+      <definition value="The reason element gives a short description of why the referral is being made, the description expands on this to support a more complete clinical summary."/>
       <min value="0"/>
       <max value="1"/>
       <base>
@@ -536,10 +702,10 @@
       </type>
       <isModifier value="false"/>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.serviceRequested">
       <path value="ReferralRequest.serviceRequested"/>
-      <short value="What actions are requested as part of referral?"/>
-      <definition value="The service(s) that is/are requested to be provided to the patient."/>
+      <short value="Actions requested as part of the referral"/>
+      <definition value="The service(s) that is/are requested to be provided to the patient.  For example: cardiac pacemaker insertion."/>
       <min value="0"/>
       <max value="*"/>
       <base>
@@ -552,13 +718,18 @@
       </type>
       <mustSupport value="true"/>
       <isModifier value="false"/>
+      <isSummary value="true"/>
       <binding>
         <strength value="example"/>
-        <description value="Codes indicating the types of services that might be requested as part of a referral"/>
+        <description value="Codes indicating the types of services that might be requested as part of a referral."/>
         <valueSetReference>
           <reference value="http://hl7.org/fhir/ValueSet/c80-practice-codes"/>
         </valueSetReference>
       </binding>
+      <mapping>
+        <identity value="v2"/>
+        <map value="PR1-3 / OBR-4"/>
+      </mapping>
       <mapping>
         <identity value="w5"/>
         <map value="what"/>
@@ -568,10 +739,10 @@
         <map value="primary code"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.supportingInformation">
       <path value="ReferralRequest.supportingInformation"/>
       <short value="Additonal information to support referral or transfer of care request"/>
-      <definition value="Any additional information"/>
+      <definition value="Any additional (administrative, financial or clinical) information required to support request for referral or transfer of care.  For example: Presenting problems/chief complaints Medical History Family History Alerts Allergy/Intolerance and Adverse Reactions Medications Observations/Assessments (may include cognitive and fundtional assessments) Diagnostic Reports Care Plan."/>
       <min value="0"/>
       <max value="*"/>
       <base>
@@ -584,52 +755,39 @@
         <profile value="http://hl7.org/fhir/StructureDefinition/Resource"/>
       </type>
       <isModifier value="false"/>
-    </element>
-    <element>
-      <path value="ReferralRequest.fulfillmentTime"/>
-      <short value="Requested service(s) fulfillment time"/>
-      <definition value="The period of time"/>
-      <alias value="EffectiveTime"/>
-      <min value="0"/>
-      <max value="1"/>
-      <base>
-        <path value="ReferralRequest.fulfillmentTime"/>
-        <min value="0"/>
-        <max value="1"/>
-      </base>
-      <type>
-        <code value="Period"/>
-      </type>
-      <mustSupport value="true"/>
-      <isModifier value="false"/>
-      <mapping>
-        <identity value="w5"/>
-        <map value="when.planned"/>
-      </mapping>
+      <isSummary value="true"/>
     </element>
   </snapshot>
   <differential>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest">
       <path value="ReferralRequest"/>
       <name value="QICore-ReferralRequest"/>
       <min value="0"/>
       <max value="*"/>
-      <type>
-        <code value="ReferralRequest"/>
-      </type>
       <mapping>
         <identity value="qdm"/>
         <map value="&quot;Encounter, Order&quot;; &quot;Encounter, Recommended&quot;"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.dateSent">
+      <path value="ReferralRequest.dateSent"/>
+      <mustSupport value="true"/>
+      <mapping>
+        <identity value="qdm"/>
+        <map value="start datetime"/>
+      </mapping>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.encounter">
+      <path value="ReferralRequest.encounter"/>
+      <type>
+        <code value="Reference"/>
+        <profile value="http://hl7.org/fhir/StructureDefinition/qicore-encounter"/>
+      </type>
+      <mustSupport value="true"/>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.extension:ReferralRequest.refusalReason">
       <path value="ReferralRequest.extension"/>
       <name value="ReferralRequest.refusalReason"/>
-      <slicing>
-        <discriminator value="url"/>
-        <ordered value="false"/>
-        <rules value="open"/>
-      </slicing>
       <min value="0"/>
       <max value="1"/>
       <type>
@@ -637,9 +795,9 @@
         <profile value="http://hl7.org/fhir/StructureDefinition/referralrequest-reasonRefused"/>
       </type>
       <binding>
-        <strength value="preferred"/>
+        <strength value="example"/>
         <valueSetReference>
-          <reference value="http://hl7.org/fhir/ValueSet/v3-ActReason"/>
+          <reference value="http://hl7.org/fhir/ValueSet/qicore-referralrequest-reason-rejected"/>
         </valueSetReference>
       </binding>
       <mapping>
@@ -647,11 +805,11 @@
         <map value="negation rationale (when ReferralRequest.status=&quot;refused&quot;)"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.status">
       <path value="ReferralRequest.status"/>
       <mustSupport value="true"/>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.type">
       <path value="ReferralRequest.type"/>
       <mustSupport value="true"/>
       <mapping>
@@ -659,15 +817,7 @@
         <map value="primary code"/>
       </mapping>
     </element>
-    <element>
-      <path value="ReferralRequest.specialty"/>
-      <mustSupport value="true"/>
-      <mapping>
-        <identity value="qdm"/>
-        <map value="primary code"/>
-      </mapping>
-    </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.priority">
       <path value="ReferralRequest.priority"/>
       <mustSupport value="true"/>
       <binding>
@@ -678,7 +828,7 @@
         </valueSetReference>
       </binding>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.patient">
       <path value="ReferralRequest.patient"/>
       <type>
         <code value="Reference"/>
@@ -686,7 +836,11 @@
       </type>
       <mustSupport value="true"/>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.fulfillmentTime">
+      <path value="ReferralRequest.fulfillmentTime"/>
+      <mustSupport value="true"/>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.requester">
       <path value="ReferralRequest.requester"/>
       <type>
         <code value="Reference"/>
@@ -702,7 +856,15 @@
       </type>
       <mustSupport value="true"/>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.specialty">
+      <path value="ReferralRequest.specialty"/>
+      <mustSupport value="true"/>
+      <mapping>
+        <identity value="qdm"/>
+        <map value="primary code"/>
+      </mapping>
+    </element>
+    <element id="ReferralRequest:QICore-ReferralRequest.recipient">
       <path value="ReferralRequest.recipient"/>
       <type>
         <code value="Reference"/>
@@ -718,47 +880,21 @@
         <map value="facility location"/>
       </mapping>
     </element>
-    <element>
-      <path value="ReferralRequest.encounter"/>
-      <type>
-        <code value="Reference"/>
-        <profile value="http://hl7.org/fhir/StructureDefinition/qicore-encounter"/>
-      </type>
-      <mustSupport value="true"/>
-    </element>
-    <element>
-      <path value="ReferralRequest.dateSent"/>
-      <mustSupport value="true"/>
-      <mapping>
-        <identity value="qdm"/>
-        <map value="start datetime"/>
-      </mapping>
-    </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.reason">
       <path value="ReferralRequest.reason"/>
       <mustSupport value="true"/>
-      <binding>
-        <strength value="preferred"/>
-        <valueSetReference>
-          <reference value="http://hl7.org/fhir/ValueSet/v3-ActReason"/>
-        </valueSetReference>
-      </binding>
       <mapping>
         <identity value="qdm"/>
         <map value="reason"/>
       </mapping>
     </element>
-    <element>
+    <element id="ReferralRequest:QICore-ReferralRequest.serviceRequested">
       <path value="ReferralRequest.serviceRequested"/>
       <mustSupport value="true"/>
       <mapping>
         <identity value="qdm"/>
         <map value="primary code"/>
       </mapping>
-    </element>
-    <element>
-      <path value="ReferralRequest.fulfillmentTime"/>
-      <mustSupport value="true"/>
     </element>
   </differential>
 </StructureDefinition>

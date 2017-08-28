@@ -9,17 +9,19 @@
  lost profits even if the Copyright owner has been advised of the possibility of
  their occurrence.
 */
+
+import ca.uhn.fhir.context.FhirContext
 import groovy.transform.TypeChecked
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang.StringUtils
-import org.hl7.fhir.instance.formats.XmlParser
-import org.hl7.fhir.instance.model.ElementDefinition
-import org.hl7.fhir.instance.model.ElementDefinition.ElementDefinitionBindingComponent
-import org.hl7.fhir.instance.model.ElementDefinition.TypeRefComponent
+import ca.uhn.fhir.parser.XmlParser;
+import org.hl7.fhir.dstu3.model.ElementDefinition
+import org.hl7.fhir.dstu3.model.ElementDefinition.ElementDefinitionBindingComponent
+import org.hl7.fhir.dstu3.model.ElementDefinition.TypeRefComponent
 
-import org.hl7.fhir.instance.model.StructureDefinition
-import org.hl7.fhir.instance.model.Resource
-import org.hl7.fhir.instance.model.UriType
+import org.hl7.fhir.dstu3.model.StructureDefinition
+import org.hl7.fhir.dstu3.model.Resource
+import org.hl7.fhir.dstu3.model.UriType
 
 /**
  * Base set of common FHIR helper methods in a base class from which
@@ -30,7 +32,7 @@ import org.hl7.fhir.instance.model.UriType
  */
 class FhirSimpleBase {
 
-  protected final XmlParser xmlParser = new XmlParser(true)
+  protected final XmlParser xmlParser = FhirContext.forDstu3().newXmlParser();
 
   public final File publishDir
 
@@ -66,9 +68,9 @@ class FhirSimpleBase {
         <name value="DAF-Condition"/>
         ...
     */
-    if (profile.hasConstrainedType()) {
-      // e.g. QICore-Procedure constrainedType=Procedure
-      return profile.getConstrainedType()
+    if (profile.hasType()) {
+      // e.g. QICore-Procedure type=Procedure
+      return profile.getType()
     }
     List<ElementDefinition> snapshot = profile.hasSnapshot() && profile.getSnapshot().hasElement() ? profile.getSnapshot().getElement() : null
     if (snapshot) {
@@ -93,7 +95,7 @@ class FhirSimpleBase {
       }
     }
     // println "X: getResourceName id=" + profile.getId()
-    String resourceName = profile.getBase() // e.g. http://hl7.org/fhir/Profile/Observation
+    String resourceName = profile.getBaseDefinition() // e.g. http://hl7.org/fhir/Profile/Observation
     if (resourceName == null) throw new IllegalStateException()
     int ind = resourceName.lastIndexOf('/')
     if (ind > 0) resourceName = resourceName.substring(ind + 1)
@@ -159,12 +161,8 @@ class FhirSimpleBase {
 
   @TypeChecked
   static String getProfile(TypeRefComponent type) {
-    // NOTE: return type in getProfile() changed after May2015 from String to List<UriType> (fix)
-    for (UriType item : type.getProfile()) {
-      String val = item.getValueAsString()
-      if (StringUtils.isNotBlank(val)) return val
-    }
-    return ''
+    // STU3 changed this to a singelton...
+    return type.getProfile()
   }
 
   /**
@@ -208,7 +206,7 @@ class FhirSimpleBase {
     </element>
     */
       final String path = target.hasPath() ? target.getPath() : ''
-      final String name = target.hasName() ? target.getName() : ''
+      final String name = target.hasSliceName() ? target.getSliceName() : ''
       return getElementByName(elementDefinitions, path, name)
   }
 
@@ -219,8 +217,8 @@ class FhirSimpleBase {
       ElementDefinition elt = it.next()
       // find by path and name
       if (elt.hasPath() && elt.getPath() == path) {
-        if (elt.hasName()) {
-          if (!name.isEmpty() && elt.getName() == name) return elt
+        if (elt.hasSliceName()) {
+          if (!name.isEmpty() && elt.getSliceName() == name) return elt
         } else {
           if (name.isEmpty()) return elt
         }
@@ -233,7 +231,7 @@ class FhirSimpleBase {
   static ElementDefinition getExtensionByName(List<ElementDefinition> elementDefs, String name) {
     for (Iterator<ElementDefinition> it = elementDefs.iterator(); it.hasNext();) {
       ElementDefinition elt = it.next()
-      if (elt.hasName() && elt.getName() == name) return elt
+      if (elt.hasSliceName() && elt.getSliceName() == name) return elt
     }
     return null // not found
   }
@@ -242,7 +240,7 @@ class FhirSimpleBase {
   static ElementDefinition getExtensionValueByName(List<ElementDefinition> elementDefs, String name) {
     for (Iterator<ElementDefinition> it = elementDefs.iterator(); it.hasNext();) {
       ElementDefinition elt = it.next()
-      if (elt.hasName() && elt.getName() == name) {
+      if (elt.hasSliceName() && elt.getSliceName() == name) {
         final def path = elt.getPath()        // <path value="Extension.extension"
         final def target = path + ".value[x]" // <path value="Extension.extension.value[x]"
         //final def sliceElt = elt
@@ -350,7 +348,7 @@ class FhirSimpleBase {
     InputStream is = null
     try {
       is = new FileInputStream(file)
-      return xmlParser.parse(is)
+      return xmlParser.parseResource(new FileReader(file)) as Resource
     } catch(IOException e) {
       throw e
     } catch(Exception e) {
@@ -362,7 +360,7 @@ class FhirSimpleBase {
 
   @TypeChecked
   String getXml(Resource resource) {
-    return xmlParser.composeString(resource)
+    return xmlParser.encodeResourceToString(resource)
   }
 
   @TypeChecked
@@ -481,7 +479,7 @@ class FhirSimpleBase {
                */
               if (path == 'Extension.extension') {
                 // if Extension.extension has max=0 then it's a simple type
-                if (elt.hasName() && (!elt.hasMax() || elt.getMax() != "0")) {
+                if (elt.hasSliceName() && (!elt.hasMax() || elt.getMax() != "0")) {
                   //isElementType = true
                   //break
                   // work-around is create temp element and set type code=Element
